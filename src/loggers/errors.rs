@@ -1,9 +1,12 @@
 use tai64::TAI64N;
-use std::fs::OpenOptions;
-use std::io::Write;
-use std::path::PathBuf;
-use crate::TuringFeedsError;
 use custom_codes::FileOps;
+use async_std::{
+    fs::OpenOptions,
+    io::{prelude::*},
+    path::PathBuf,
+};
+
+use crate::TuringFeedsError;
 
 #[derive(Debug)]
 pub enum Operation {
@@ -32,7 +35,7 @@ pub struct ErrorLogger{
 }
 
 impl ErrorLogger {
-    pub fn new() -> Self {
+    pub async fn new() -> Self {
         Self {
             kind: Default::default(),
             time: TAI64N::now(),
@@ -40,19 +43,19 @@ impl ErrorLogger {
         }
     }
 
-    pub fn kind(mut self, value: TuringFeedsError) -> Self {
+    pub async fn kind(mut self, value: TuringFeedsError) -> Self {
         self.kind = value;
 
         self
     }
 
-    pub fn op(mut self, value: Operation) -> Self {
+    pub async fn op(mut self, value: Operation) -> Self {
         self.operation = value;
 
         self
     }
 
-    pub fn log(self) -> Result<FileOps, TuringFeedsError> {
+    pub async fn log(self) -> Result<FileOps, TuringFeedsError> {
         let mut db_path = PathBuf::new();
 		db_path.push("TuringFeedsDB");
 		db_path.push("TuringFeeds.log");
@@ -61,9 +64,9 @@ impl ErrorLogger {
             .create(true)
             .write(false)
             .append(true)
-            .open(db_path)?;    
+            .open(db_path).await?;
 
-		match writeln!(file, "{:?}", self)
+		match writeln!(file, "{:?}", self).await
 			{
 				Ok(_) => Ok(FileOps::AppendTrue),
 				Err(error) => Err(TuringFeedsError::IoError(error)),
