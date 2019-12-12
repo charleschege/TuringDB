@@ -15,6 +15,7 @@ use async_std::{
 /// Store access keys and blake2b hashes for databases in zbox
 /// Encrypt the database
 
-fn main() {
-    
+#[async_std::main]
+async fn main() {
+    // Check if database repository exists, if not exit with an error
 }
