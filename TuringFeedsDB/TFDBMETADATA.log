@@ -1,4 +1,0 @@
-TuringFeeds { identifier: "00", db_name: "FULLe", time: TAI64N(TAI64(4611686020002089788), 787106970), document_list: None, rights: None }
-TuringFeeds { identifier: "1", db_name: "FULLe", time: TAI64N(TAI64(4611686020002089788), 787106970), document_list: None, rights: None }
-TuringFeeds { identifier: "2", db_name: "FULLe", time: TAI64N(TAI64(4611686020002089788), 787106970), document_list: None, rights: None }
-TuringFeeds { identifier: "3", db_name: "FULLe", time: TAI64N(TAI64(4611686020002089788), 787106970), document_list: None, rights: None }

@@ -11,8 +11,9 @@ async-std = { version = "1.2.0", features = ["attributes"] }
 uuid = { version = "0.7.4", features = ["v4"] }
 custom_codes =  { path = "../custom_codes" } #"1.2.3"
 timelite = "1.0.4"
-tai64 = "3.1.0"
+tai64 = { version = "3.1.0", features = ["serde"] }
 seahash = "3.0.6"
 redactedsecret = { path = "../RedactedSecret" } #"0.4.1"
 walkdir = "2.2.9"
 ron = "0.5.1"
+serde = { version = "1.0.103", features = ["derive"] }
