@@ -30,7 +30,7 @@ use crate::{
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TuringFeeds {
 	created: TAI64N,
-	db_docs: Option<HashMap<UserDefinedName, TuringFeedsDB>>,
+	dbs: Option<HashMap<UserDefinedName, TuringFeedsDB>>,
 	//hash: RepoBlake2hash,
 	//secrecy: TuringSecrecy,
 	//config: TuringConfig,
@@ -43,7 +43,7 @@ pub struct TuringFeeds {
 impl TuringFeeds {
 	/// Initialize the structure with default values
 	pub async fn new() -> Self {
-		Self { created: TAI64N::now(), db_docs: Option::default(), }
+		Self { created: TAI64N::now(), dbs: Option::default(), }
 	}
 	/// Recursively walk through the Directory
 	/// Load all the Directories into memory
@@ -90,6 +90,33 @@ impl TuringFeeds {
 					}
 				}
 			}
+	}
+	/// Create the Metadata file
+	pub async fn metadata(self) -> Result<FileOps>{
+
+		let mut repo_path = PathBuf::new();
+		repo_path.push("TuringFeeds");
+		repo_path.push("REPO");
+		repo_path.set_extension("log");
+
+		match OpenOptions::new()
+		.create(true)
+		.read(false)
+		.append(true)
+		.open(repo_path).await {
+			Ok(_) => Ok(FileOps::CreateTrue),
+			Err(error) => {
+				if error.kind() == ErrorKind::PermissionDenied {
+					Ok(FileOps::WriteDenied)
+				}else if error.kind() == ErrorKind::AlreadyExists {
+					Ok(FileOps::AlreadyExists)
+				}else if error.kind() == ErrorKind::Interrupted {
+					Ok(FileOps::Interrupted)
+				}else {
+					Err(TuringFeedsError::IoError(error))
+				} 
+			}
+		}
 	}
 }
 
