@@ -41,11 +41,15 @@ pub struct TuringFeeds {
 }
 
 impl TuringFeeds {
+	/// Initialize the structure with default values
+	pub async fn new() -> Self {
+		Self { created: TAI64N::now(), db_docs: Option::default(), }
+	}
 	/// Recursively walk through the Directory
 	/// Load all the Directories into memory
 	/// Hash and Compare with Persisted Hash to check for corruption
 	/// Throw errors if any otherwise 
-	pub async fn init() -> Result<TuringFeeds> {
+	pub async fn init(self) -> Result<TuringFeeds> {
 		let mut repo_path = PathBuf::new();
 		repo_path.push("TuringFeeds");
 		repo_path.push("REPO");
@@ -62,7 +66,7 @@ impl TuringFeeds {
 
 		buffer.read_line(&mut raw).await?;
 
-		Ok(ron::de::from_str::<TuringFeeds>(&raw)?)
+		Ok(ron::de::from_str::<Self>(&raw)?)
 	}
 }
 

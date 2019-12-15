@@ -22,7 +22,7 @@ use turingfeeds::{
 #[async_std::main]
 async fn main() -> Result<()>{
     // Check if database repository exists, if not exit with an error
-    match TuringFeeds::init().await {
+    match TuringFeeds::new().await.init().await {
         Ok(val) => {
             dbg!(val);
         },
