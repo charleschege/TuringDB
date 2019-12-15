@@ -104,7 +104,13 @@ impl TuringFeeds {
 		.read(false)
 		.append(true)
 		.open(repo_path).await {
-			Ok(_) => Ok(FileOps::CreateTrue),
+			Ok(mut file) => {
+				let data = ron::ser::to_string(&self)?.as_bytes().to_owned();
+				file.write_all(&data).await?;
+				file.sync_all().await?;
+				
+				Ok(FileOps::CreateTrue)
+			},
 			Err(error) => {
 				if error.kind() == ErrorKind::PermissionDenied {
 					Ok(FileOps::WriteDenied)

@@ -2,7 +2,8 @@
 pub enum TuringFeedsError {
     IoError(async_std::io::Error),
     WalkDirError(walkdir::Error),
-    RonError(ron::de::Error),
+    RonSerError(ron::ser::Error),
+    RonDeError(ron::de::Error),
     Unspecified,
 }
 
@@ -30,8 +31,14 @@ impl From<walkdir::Error> for TuringFeedsError {
     }
 }
 
+impl From<ron::ser::Error> for TuringFeedsError {
+    fn from(error: ron::ser::Error) -> Self {
+        TuringFeedsError::RonSerError(error)
+    }
+}
+
 impl From<ron::de::Error> for TuringFeedsError {
     fn from(error: ron::de::Error) -> Self {
-        TuringFeedsError::RonError(error)
+        TuringFeedsError::RonDeError(error)
     }
 }

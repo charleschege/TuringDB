@@ -41,7 +41,7 @@ async fn main() -> Result<()>{
                         writeln!(stdout(),"[✘ TURINGFEEDS → CORRUPTED] \nCORRUPTED! Not Read The Whole File.").await?
                     }
                 },
-                TuringFeedsError::RonError(error) => writeln!(stdout(),"[✘ TURINGFEEDS → INITIALIZE ERROR] \nThe metadata file `REPO.log` seems to be corrupted. This file is used to initialize the Database Repository!\nTechnical error: {:?}", error).await?,
+                TuringFeedsError::RonDeError(error) => writeln!(stdout(),"[✘ TURINGFEEDS → INITIALIZE ERROR] \nThe metadata file `REPO.log` seems to be corrupted. This file is used to initialize the Database Repository!\nTechnical error: {:?}", error).await?,
                 _ =>  writeln!(stdout(),"[TURINGFEEDS] \n{:?}", error).await?
             }
         }
