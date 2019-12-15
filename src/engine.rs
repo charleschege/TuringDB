@@ -2,7 +2,7 @@ use async_std::{
     task,
     fs::{File, OpenOptions, DirBuilder},
     net::{TcpListener, TcpStream},
-	io::{prelude::*, BufReader},
+	io::{prelude::*, BufReader, ErrorKind},
 	path::PathBuf,
 };
 use std::{collections::HashMap, io::Read};
@@ -67,6 +67,29 @@ impl TuringFeeds {
 		buffer.read_line(&mut raw).await?;
 
 		Ok(ron::de::from_str::<Self>(&raw)?)
+	}
+	/// Create a new repository/directory that contains the databases
+	pub async fn create() -> Result<FileOps> {
+		let mut repo_path = PathBuf::new();
+		repo_path.push("TuringFeeds");
+		
+		match DirBuilder::new()
+			.recursive(false)
+			.create(repo_path)
+			.await {
+				Ok(_) => Ok(FileOps::CreateTrue),
+				Err(error) => {
+					if error.kind() == ErrorKind::PermissionDenied {
+						Ok(FileOps::WriteDenied)
+					}else if error.kind() == ErrorKind::AlreadyExists {
+						Ok(FileOps::AlreadyExists)
+					}else if error.kind() == ErrorKind::Interrupted {
+						Ok(FileOps::Interrupted)
+					}else {
+						Err(TuringFeedsError::IoError(error))
+					}
+				}
+			}
 	}
 }
 
