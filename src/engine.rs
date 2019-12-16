@@ -104,8 +104,8 @@ impl TuringFeeds {
 			Err(error) => Err(TuringFeedsError::IoError(error)),
 		}
 	}
-	/// Add a Database if it dosent exist
-	pub async fn memdb(mut self, values: TuringFeedsDB) -> (DbOps, Self) {
+	/// Add or Modify a Database
+	pub async fn memdb_add(mut self, values: TuringFeedsDB) -> (DbOps, Self) {
 		if let Some(mut existing_map) = self.dbs {
 			match existing_map.insert(values.identifier.clone(), values) {
 				Some(_) => { // If the value existed in the map
@@ -126,6 +126,26 @@ impl TuringFeeds {
 			self.dbs = Some(new_map);
 
 			(DbOps::Inserted, self)
+		}
+	}
+	/// Add a Database if it dosent exist
+	pub async fn memdb_rm(mut self, key: &str) -> (DbOps, Self) {
+		if let Some(mut existing_map) = self.dbs {
+			match existing_map.remove(key) {
+				Some(_) => { // If the value existed in the map
+					self.created = TAI64N::now();
+					self.dbs = Some(existing_map);
+					(DbOps::Deleted, self)
+				},
+				None => {
+					// If the key does not exist in the map
+					self.dbs = Some(existing_map);
+					(DbOps::KeyNotFound, self)
+				},
+			}
+		}else {
+			// The Repository does not have any databases
+			(DbOps::Empty, self)
 		}
 	}
 }
