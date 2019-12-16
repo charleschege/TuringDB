@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 async-std = { version = "1.2.0", features = ["attributes"] }
-uuid = { version = "0.7.4", features = ["v4"] }
+rand = "0.7.2"
 custom_codes =  { path = "../custom_codes" } #"1.2.3"
 timelite = "1.0.4"
 tai64 = { version = "3.1.0", features = ["serde"] }

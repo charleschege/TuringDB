@@ -1,6 +1,15 @@
 use redactedsecret::SecretString;
 use tai64::TAI64N;
-use std::path::PathBuf;
+use std::{
+    iter,
+    path::PathBuf
+};
+
+use rand::{
+    Rng,
+    thread_rng,
+    distributions::Alphanumeric,
+};
 
 use crate::{
     TuringFeedsError,
@@ -17,6 +26,21 @@ pub type SeaHashCipher = u64;
 pub type NoOfEntries = usize;
 pub type CreateTaiTime = TAI64N;
 pub type ModifiedTaiTime = TAI64N;
+pub type RandIdentifierString = String;
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct RandIdentifier;
+
+impl RandIdentifier {
+    pub async fn build() -> String {
+        let mut rng = thread_rng();
+        
+        iter::repeat(())
+            .map(|()| rng.sample(Alphanumeric))
+            .take(64)
+            .collect::<String>()
+    }
+}
 
 #[derive(Debug)]
 pub enum AccessRights {

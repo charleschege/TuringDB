@@ -8,7 +8,6 @@ use async_std::{
 use std::{collections::HashMap, io::Read};
 use custom_codes::{FileOps, DbOps};
 use tai64::TAI64N;
-use uuid::Uuid;
 use serde::{Serialize, Deserialize};
 
 use crate::{
@@ -22,6 +21,8 @@ use crate::{
 	NoOfEntries, 
 	CreateTaiTime, 
 	ModifiedTaiTime,
+	RandIdentifier,
+	RandIdentifierString,
 	Result,
 };
 
@@ -235,27 +236,32 @@ enum Structure {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TFDocument {
 	// Gives the document path
-	identifier: UserDefinedName,
-	primary_key: UserDefinedName,
-	indexes: Vec<String>,
-	hash: SeaHashCipher,
-	size: NoOfEntries,
+	identifier: RandIdentifierString,
+	//primary_key: Option<UserDefinedName>,
+	//indexes: Vec<String>,
+	//hash: SeaHashCipher,
 	create_time: CreateTaiTime,
 	modified_time: ModifiedTaiTime,
 	//structure: Structure,
 }
 
 impl TFDocument {
-	pub fn new() -> Self {
+	pub async fn new() -> Self {
+		let time_now = TAI64N::now();
+
 		Self {
-			identifier: Uuid::new_v4().to_hyphenated().to_string(),
-			primary_key: Default::default(),
-			indexes: Vec::default(),
-			hash: Default::default(),
-			size: Default::default(),
-			create_time: TAI64N::now(),
-			modified_time: TAI64N::now(),
+			identifier: RandIdentifier::build().await,
+			//primary_key: Option::default(),
+			//indexes: Vec::default(),
+			//hash: Default::default(),
+			create_time: time_now,
+			modified_time: time_now,
 		}
+	}
+	pub async fn id(mut self, value: &str) -> Self {
+		self.identifier = value.to_owned();
+
+		self
 	}
 }
 
