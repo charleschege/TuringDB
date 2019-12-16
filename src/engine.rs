@@ -153,8 +153,8 @@ impl TuringFeeds {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TuringFeedsDB {	
 	identifier: UserDefinedName,
-	time: TAI64N,
-	document_list: Option<Vec<TFDocument>>,
+	datetime: TAI64N,
+	document_list: Option<HashMap<UserDefinedName, TFDocument>>,
 	//rights: Option<HashMap<UserIdentifier, (Role, AccessRights)>>,
 	//database_hash: Blake2hash,
 	//secrecy: TuringSecrecy,
@@ -166,16 +166,66 @@ pub struct TuringFeedsDB {
 }
 
 impl TuringFeedsDB {
-	pub fn new() -> Self {
+	pub async fn new() -> Self {
 		Self {
-			identifier: Default::default(),
-			time: TAI64N::now(),
-			document_list: Default::default(),
+			identifier: String::default(),
+			datetime: TAI64N::now(),
+			document_list: Option::default(),
+		}
+	}
+	pub async fn identifier(mut self, key: &str) -> Self {
+		self.identifier = key.to_owned();
+
+		self
+	}
+	pub async fn memdb_add(mut self, values: TFDocument) -> Self {
+		if let Some(mut existing_map) = self.document_list {
+			match existing_map.insert(values.identifier.clone(), values) {
+				Some(_) => { // If the value existed in the map
+					self.datetime = TAI64N::now();
+					self.document_list = Some(existing_map);
+					
+					self
+				},
+				None => {
+					self.datetime = TAI64N::now();
+					self.document_list = Some(existing_map);
+					
+					self
+				},
+			}
+		}else {
+			let mut new_map = HashMap::new();
+			new_map.insert(values.identifier.clone(), values);
+			self.datetime = TAI64N::now();
+			self.document_list = Some(new_map);
+
+			self
+		}
+	}
+	pub async fn memdb_rm(mut self, key: &str) -> (DbOps, Self) {
+		if let Some(mut existing_map) = self.document_list {
+			match existing_map.remove(key) {
+				Some(_) => { // If the value existed in the map
+					self.datetime = TAI64N::now();
+					self.document_list = Some(existing_map);
+					(DbOps::Deleted, self)
+				},
+				None => {
+					// If the key does not exist in the map
+					self.document_list = Some(existing_map);
+					(DbOps::KeyNotFound, self)
+				},
+			}
+		}else {
+			// The Repository does not have any databases
+			(DbOps::Empty, self)
 		}
 	}
 }
 
 // Get structure from file instead of making it a `pub` type
+#[allow(unused_variables)]
 #[derive(Debug, Serialize, Deserialize)]
 enum Structure {
 	Schemaless,
@@ -192,7 +242,7 @@ pub struct TFDocument {
 	size: NoOfEntries,
 	create_time: CreateTaiTime,
 	modified_time: ModifiedTaiTime,
-	structure: Structure,
+	//structure: Structure,
 }
 
 impl TFDocument {
@@ -205,7 +255,6 @@ impl TFDocument {
 			size: Default::default(),
 			create_time: TAI64N::now(),
 			modified_time: TAI64N::now(),
-			structure: Structure::Schemaless,
 		}
 	}
 }
