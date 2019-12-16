@@ -7,6 +7,10 @@ use async_std::{
     io::{ErrorKind, prelude::*, stdout},
 };
 
+use std::{
+    collections::HashMap,
+};
+
 use turingfeeds::{
     TuringFeeds,
     TuringFeedsError,
@@ -22,9 +26,11 @@ use turingfeeds::{
 #[async_std::main]
 async fn main() -> Result<()>{
     // Check if database repository exists, if not exit with an error
+    let mut data = TuringFeeds::new().await;
+
     match TuringFeeds::new().await.init().await {
         Ok(val) => {
-            dbg!(val);
+            data = val;
         },
         Err(error) => {
             match error {
@@ -46,6 +52,8 @@ async fn main() -> Result<()>{
             }
         }
     }
+
+    dbg!(&data);
 
     Ok(())
 }
