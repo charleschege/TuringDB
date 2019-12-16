@@ -78,17 +78,7 @@ impl TuringFeeds {
 			.create(repo_path)
 			.await {
 				Ok(_) => Ok(FileOps::CreateTrue),
-				Err(error) => {
-					if error.kind() == ErrorKind::PermissionDenied {
-						Ok(FileOps::WriteDenied)
-					}else if error.kind() == ErrorKind::AlreadyExists {
-						Ok(FileOps::AlreadyExists)
-					}else if error.kind() == ErrorKind::Interrupted {
-						Ok(FileOps::Interrupted)
-					}else {
-						Err(TuringFeedsError::IoError(error))
-					}
-				}
+				Err(error) => Err(TuringFeedsError::IoError(error)),
 			}
 	}
 	/// Create the Metadata file
@@ -111,17 +101,7 @@ impl TuringFeeds {
 				
 				Ok(FileOps::CreateTrue)
 			},
-			Err(error) => {
-				if error.kind() == ErrorKind::PermissionDenied {
-					Ok(FileOps::WriteDenied)
-				}else if error.kind() == ErrorKind::AlreadyExists {
-					Ok(FileOps::AlreadyExists)
-				}else if error.kind() == ErrorKind::Interrupted {
-					Ok(FileOps::Interrupted)
-				}else {
-					Err(TuringFeedsError::IoError(error))
-				} 
-			}
+			Err(error) => Err(TuringFeedsError::IoError(error)),
 		}
 	}
 }
