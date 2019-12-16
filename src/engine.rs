@@ -128,7 +128,7 @@ impl TuringFeeds {
 			(DbOps::Inserted, self)
 		}
 	}
-	/// Add a Database if it dosent exist
+	/// Add a Database if it does not exist
 	pub async fn memdb_rm(mut self, key: &str) -> (DbOps, Self) {
 		if let Some(mut existing_map) = self.dbs {
 			match existing_map.remove(key) {
