@@ -2,6 +2,7 @@ Ensure that a recheck of the tables of select and maintained pool
 Encrypt DB is ChaChaPoly1305
 Support for joins via Structs
 Add ability to insert or delete multiple databases. [Batch commands]
+Ability to search by indexes
 
     <-- [Load all databases into memory] -->
 
