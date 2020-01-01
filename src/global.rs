@@ -39,6 +39,7 @@ impl RandIdentifier {
             .map(|()| rng.sample(Alphanumeric))
             .take(64)
             .collect::<String>()
+            .to_lowercase()
     }
 }
 

@@ -7,12 +7,10 @@ use async_std::{
     io::{ErrorKind, prelude::*, stdout},
 };
 
-use std::{
-    collections::HashMap,
-};
-
 use turingfeeds::{
     TuringFeeds,
+    TuringFeedsDB,
+    TFDocument,
     TuringFeedsError,
     Result,
 };
@@ -26,9 +24,11 @@ use turingfeeds::{
 #[async_std::main]
 async fn main() -> Result<()>{
     // Check if database repository exists, if not exit with an error
-    let mut data = TuringFeeds::new().await;
+    let data = TuringFeeds::new().await;
+    dbg!(&data);
+    dbg!(data.init().await?);
 
-    match TuringFeeds::new().await.init().await {
+    /*match TuringFeeds::new().await.init().await {
         Ok(val) => {
             data = val;
         },
@@ -51,9 +51,26 @@ async fn main() -> Result<()>{
                 _ =>  writeln!(stdout(),"[TURINGFEEDS] \n{:?}", error).await?
             }
         }
-    }
+    }*/
+    let document = TFDocument::new().await;
+    let db = TuringFeedsDB::new().await;
+/*
+    for n in 1..6 {
+        let table = format!("trial_table{}", n);
+        let id = format!("trial_table{}", n);
+        document.clone().id(&table).await;
+        db.clone().identifier(&id).await
+            .memdb_add(document.clone()).await;
 
-    dbg!(&data);
+        dbg!(&db);
 
+        let end = data.clone().memdb_add(db.clone()).await;
+
+        dbg!(&end);
+    }*/
+
+        // TODO Seek the end of the log
+    
+    //dbg!(&data);
     Ok(())
 }

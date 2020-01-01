@@ -2,10 +2,11 @@ use async_std::{
     task,
     fs::{File, OpenOptions, DirBuilder},
     net::{TcpListener, TcpStream},
-	io::{prelude::*, BufReader, ErrorKind},
+	io::{prelude::*, BufReader, ErrorKind, Seek, SeekFrom},
 	path::PathBuf,
+	sync::RwLock,
 };
-use std::{collections::HashMap, io::Read};
+use std::{collections::{HashMap, hash_map::Entry}, io::Read};
 use custom_codes::{FileOps, DbOps};
 use tai64::TAI64N;
 use serde::{Serialize, Deserialize};
@@ -28,10 +29,9 @@ use crate::{
 
 /// No need for rights as the user who decrypts the DB has total access
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct TuringFeeds {
-	created: TAI64N,
-	dbs: Option<HashMap<UserDefinedName, TuringFeedsDB>>,
+	dbs: RwLock<HashMap<UserDefinedName, TuringFeedsDB>>,
 	//hash: RepoBlake2hash,
 	//secrecy: TuringSecrecy,
 	//config: TuringConfig,
@@ -44,30 +44,33 @@ pub struct TuringFeeds {
 impl TuringFeeds {
 	/// Initialize the structure with default values
 	pub async fn new() -> Self {
-		Self { created: TAI64N::now(), dbs: Option::default(), }
+		Self { dbs: RwLock::default(), }
 	}
 	/// Recursively walk through the Directory
 	/// Load all the Directories into memory
 	/// Hash and Compare with Persisted Hash to check for corruption
 	/// Throw errors if any otherwise 
-	pub async fn init(self) -> Result<TuringFeeds> {
+	pub async fn init(&self) -> Result<&TuringFeeds> {
 		let mut repo_path = PathBuf::new();
+
 		repo_path.push("TuringFeeds");
 		repo_path.push("REPO");
 		repo_path.set_extension("log");
 
-		let file = OpenOptions::new()
+		let mut contents = String::new();
+		let mut file = OpenOptions::new()
 			.create(false)
 			.read(true)
-			.append(true)
+			.write(true)
 			.open(repo_path).await?;
 
-		let mut buffer = BufReader::new(file);
-		let mut raw = String::new();
+		file.read_to_string(&mut contents).await?;
+		let data = ron::de::from_str::<HashMap<UserDefinedName, TuringFeedsDB>>(&contents)?;
+		
+		let mut mutate_self = self.dbs.write().await;
+		*mutate_self = data;
 
-		buffer.read_line(&mut raw).await?;
-
-		Ok(ron::de::from_str::<Self>(&raw)?)
+		Ok(self)
 	}
 	/// Create a new repository/directory that contains the databases
 	pub async fn create() -> Result<FileOps> {
@@ -82,8 +85,9 @@ impl TuringFeeds {
 				Err(error) => Err(TuringFeedsError::IoError(error)),
 			}
 	}
+
 	/// Create the Metadata file
-	pub async fn metadata(self) -> Result<FileOps>{
+	pub async fn metadata(&self) -> Result<FileOps>{
 
 		let mut repo_path = PathBuf::new();
 		repo_path.push("TuringFeeds");
@@ -93,11 +97,12 @@ impl TuringFeeds {
 		match OpenOptions::new()
 		.create(true)
 		.read(false)
-		.append(true)
+		.write(true)
 		.open(repo_path).await {
 			Ok(mut file) => {
-				let data = ron::ser::to_string(&self)?.as_bytes().to_owned();
-				file.write_all(&data).await?;
+				let lock = self.dbs.read().await;
+				let data = ron::ser::to_string(&*lock)?;
+				file.write_all(&data.as_bytes().to_owned()).await?;
 				file.sync_all().await?;
 				
 				Ok(FileOps::CreateTrue)
@@ -106,47 +111,35 @@ impl TuringFeeds {
 		}
 	}
 	/// Add or Modify a Database
-	pub async fn memdb_add(mut self, values: TuringFeedsDB) -> (DbOps, Self) {
-		if let Some(mut existing_map) = self.dbs {
-			match existing_map.insert(values.identifier.clone(), values) {
-				Some(_) => { // If the value existed in the map
-					self.created = TAI64N::now();
-					self.dbs = Some(existing_map);
-					(DbOps::Modified, self)
-				},
-				None => {
-					self.created = TAI64N::now();
-					self.dbs = Some(existing_map);
-					(DbOps::Inserted, self)
-				},
-			}
-		}else {
-			let mut new_map = HashMap::new();
-			new_map.insert(values.identifier.clone(), values);
-			self.created = TAI64N::now();
-			self.dbs = Some(new_map);
+	pub async fn memdb_add(&mut self, values: TuringFeedsDB) -> (DbOps, &Self) {
+		match self.dbs.get_mut().entry(values.identifier.clone()) {
+			Entry::Occupied(_) => (DbOps::AlreadyExists, self),
+			Entry::Vacant(_) => {
+				let mut lock = self.dbs.write().await;
+				lock.insert(values.identifier.clone(), values);
 
-			(DbOps::Inserted, self)
+				(DbOps::Inserted, self)
+			}
+		}
+	}
+	/// Add or Modify a Database
+	pub async fn memdb_update(&mut self, values: TuringFeedsDB) -> (DbOps, &Self) {
+		match self.dbs.get_mut().entry(values.identifier.clone()) {
+			Entry::Vacant(_) => (DbOps::KeyNotFound, self),
+			Entry::Occupied(_) => {
+				let mut lock = self.dbs.write().await;
+				lock.insert(values.identifier.clone(), values);
+
+				(DbOps::Modified, self)
+			}
 		}
 	}
 	/// Add a Database if it does not exist
-	pub async fn memdb_rm(mut self, key: &str) -> (DbOps, Self) {
-		if let Some(mut existing_map) = self.dbs {
-			match existing_map.remove(key) {
-				Some(_) => { // If the value existed in the map
-					self.created = TAI64N::now();
-					self.dbs = Some(existing_map);
-					(DbOps::Deleted, self)
-				},
-				None => {
-					// If the key does not exist in the map
-					self.dbs = Some(existing_map);
-					(DbOps::KeyNotFound, self)
-				},
-			}
-		}else {
-			// The Repository does not have any databases
-			(DbOps::Empty, self)
+	pub async fn memdb_rm(mut self, key: &str) -> (DbOps, Option<TuringFeedsDB>) {
+		let mut lock = self.dbs.write().await;
+		match lock.remove(key) {
+			Some(val) => (DbOps::Deleted, Some(val)),
+			None => (DbOps::KeyNotFound, None)
 		}
 	}
 }
@@ -237,11 +230,11 @@ enum Structure {
 pub struct TFDocument {
 	// Gives the document path
 	identifier: RandIdentifierString,
+	create_time: CreateTaiTime,
+	modified_time: ModifiedTaiTime,
 	//primary_key: Option<UserDefinedName>,
 	//indexes: Vec<String>,
 	//hash: SeaHashCipher,
-	create_time: CreateTaiTime,
-	modified_time: ModifiedTaiTime,
 	//structure: Structure,
 }
 
@@ -263,9 +256,14 @@ impl TFDocument {
 
 		self
 	}
+	pub async fn modified_time(mut self) -> Self {
+		self.modified_time = TAI64N::now();
+
+		self
+	}
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 enum DocumentRights {
 	/// Create Access
 	C,
@@ -303,3 +301,176 @@ enum TuringSecrecy {
 	DefaultMode,
 	InactiveMode,
 }
+
+/*
+
+impl TuringFeeds {
+	/// Initialize the structure with default values
+	pub async fn new() -> Self {
+		Self { created: TAI64N::now(), dbs: Option::default(), }
+	}
+	/// Recursively walk through the Directory
+	/// Load all the Directories into memory
+	/// Hash and Compare with Persisted Hash to check for corruption
+	/// Throw errors if any otherwise 
+	pub async fn init(self) -> Result<TuringFeeds> {
+		let mut repo_path = PathBuf::new();
+		repo_path.push("TuringFeeds");
+		repo_path.push("REPO");
+		repo_path.set_extension("log");
+
+		let mut contents = String::new();
+		let mut file = OpenOptions::new()
+			.create(false)
+			.read(true)
+			.write(true)
+			.open(repo_path).await?;
+
+		file.read_to_string(&mut contents).await?;
+
+		dbg!(&contents);
+
+		Ok(ron::de::from_str::<Self>(&contents)?)
+	}
+	/// Create a new repository/directory that contains the databases
+	pub async fn create() -> Result<FileOps> {
+		let mut repo_path = PathBuf::new();
+		repo_path.push("TuringFeeds");
+		
+		match DirBuilder::new()
+			.recursive(false)
+			.create(repo_path)
+			.await {
+				Ok(_) => Ok(FileOps::CreateTrue),
+				Err(error) => Err(TuringFeedsError::IoError(error)),
+			}
+	}
+	/// Create the Metadata file
+	pub async fn metadata(self) -> Result<FileOps>{
+
+		let mut repo_path = PathBuf::new();
+		repo_path.push("TuringFeeds");
+		repo_path.push("REPO");
+		repo_path.set_extension("log");
+
+		match OpenOptions::new()
+		.create(true)
+		.read(false)
+		.write(true)
+		.open(repo_path).await {
+			Ok(mut file) => {
+				let data = ron::ser::to_string(&self)?.as_bytes().to_owned();
+				file.write_all(&data).await?;
+				file.sync_all().await?;
+				
+				Ok(FileOps::CreateTrue)
+			},
+			Err(error) => Err(TuringFeedsError::IoError(error)),
+		}
+	}
+	/// Add or Modify a Database
+	pub async fn memdb_add(mut self, values: TuringFeedsDB) -> (DbOps, Self) {
+		if let Some(mut existing_map) = self.dbs {
+			match existing_map.insert(values.identifier.clone(), values) {
+				Some(_) => { // If the value existed in the map
+					self.created = TAI64N::now();
+					self.dbs = Some(existing_map);
+					(DbOps::Modified, self)
+				},
+				None => {
+					self.created = TAI64N::now();
+					self.dbs = Some(existing_map);
+					(DbOps::Inserted, self)
+				},
+			}
+		}else {
+			let mut new_map = HashMap::new();
+			new_map.insert(values.identifier.clone(), values);
+			self.created = TAI64N::now();
+			self.dbs = Some(new_map);
+
+			(DbOps::Inserted, self)
+		}
+	}
+	/// Add a Database if it does not exist
+	pub async fn memdb_rm(mut self, key: &str) -> (DbOps, Self) {
+		if let Some(mut existing_map) = self.dbs {
+			match existing_map.remove(key) {
+				Some(_) => { // If the value existed in the map
+					self.created = TAI64N::now();
+					self.dbs = Some(existing_map);
+					(DbOps::Deleted, self)
+				},
+				None => {
+					// If the key does not exist in the map
+					self.dbs = Some(existing_map);
+					(DbOps::KeyNotFound, self)
+				},
+			}
+		}else {
+			// The Repository does not have any databases
+			(DbOps::Empty, self)
+		}
+	}
+}
+
+impl TuringFeedsDB {
+	pub async fn new() -> Self {
+		Self {
+			identifier: String::default(),
+			datetime: TAI64N::now(),
+			document_list: Option::default(),
+		}
+	}
+	pub async fn identifier(mut self, key: &str) -> Self {
+		self.identifier = key.to_owned();
+
+		self
+	}
+	pub async fn memdb_add(mut self, values: TFDocument) -> Self {
+		if let Some(mut existing_map) = self.document_list {
+			match existing_map.insert(values.identifier.clone(), values) {
+				Some(_) => { // If the value existed in the map
+					self.datetime = TAI64N::now();
+					self.document_list = Some(existing_map);
+					
+					self
+				},
+				None => {
+					self.datetime = TAI64N::now();
+					self.document_list = Some(existing_map);
+					
+					self
+				},
+			}
+		}else {
+			let mut new_map = HashMap::new();
+			new_map.insert(values.identifier.clone(), values);
+			self.datetime = TAI64N::now();
+			self.document_list = Some(new_map);
+
+			self
+		}
+	}
+	pub async fn memdb_rm(mut self, key: &str) -> (DbOps, Self) {
+		if let Some(mut existing_map) = self.document_list {
+			match existing_map.remove(key) {
+				Some(_) => { // If the value existed in the map
+					self.datetime = TAI64N::now();
+					self.document_list = Some(existing_map);
+					(DbOps::Deleted, self)
+				},
+				None => {
+					// If the key does not exist in the map
+					self.document_list = Some(existing_map);
+					(DbOps::KeyNotFound, self)
+				},
+			}
+		}else {
+			// The Repository does not have any databases
+			(DbOps::Empty, self)
+		}
+	}
+}
+
+*/
