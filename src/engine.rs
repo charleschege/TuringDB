@@ -86,8 +86,8 @@ impl TuringFeeds {
 			}
 	}
 
-	/// Create the Metadata file
-	pub async fn metadata(&self) -> Result<FileOps>{
+	/// Create the Metadata file or add data to the metadata file
+	pub async fn commit(&self) -> Result<FileOps>{
 
 		let mut repo_path = PathBuf::new();
 		repo_path.push("TuringFeeds");
@@ -111,14 +111,14 @@ impl TuringFeeds {
 		}
 	}
 	/// Add or Modify a Database
-	pub async fn memdb_add(&mut self, values: TuringFeedsDB) -> (DbOps, &Self) {
+	pub async fn memdb_add(&mut self, values: TuringFeedsDB) -> (DbOps, Option<&Self>) {
 		match self.dbs.get_mut().entry(values.identifier.clone()) {
-			Entry::Occupied(_) => (DbOps::AlreadyExists, self),
+			Entry::Occupied(_) => (DbOps::AlreadyExists, None),
 			Entry::Vacant(_) => {
 				let mut lock = self.dbs.write().await;
 				lock.insert(values.identifier.clone(), values);
 
-				(DbOps::Inserted, self)
+				(DbOps::Inserted, Some(self))
 			}
 		}
 	}
@@ -135,7 +135,7 @@ impl TuringFeeds {
 		}
 	}
 	/// Add a Database if it does not exist
-	pub async fn memdb_rm(mut self, key: &str) -> (DbOps, Option<TuringFeedsDB>) {
+	pub async fn memdb_rm(&self, key: &str) -> (DbOps, Option<TuringFeedsDB>) {
 		let mut lock = self.dbs.write().await;
 		match lock.remove(key) {
 			Some(val) => (DbOps::Deleted, Some(val)),
@@ -172,7 +172,7 @@ impl TuringFeedsDB {
 
 		self
 	}
-	pub async fn memdb_add(mut self, values: TFDocument) -> Self {
+	pub async fn add(mut self, values: TFDocument) -> Self {
 		if let Some(mut existing_map) = self.document_list {
 			match existing_map.insert(values.identifier.clone(), values) {
 				Some(_) => { // If the value existed in the map
@@ -197,7 +197,7 @@ impl TuringFeedsDB {
 			self
 		}
 	}
-	pub async fn memdb_rm(mut self, key: &str) -> (DbOps, Self) {
+	pub async fn rm(mut self, key: &str) -> (DbOps, Self) {
 		if let Some(mut existing_map) = self.document_list {
 			match existing_map.remove(key) {
 				Some(_) => { // If the value existed in the map

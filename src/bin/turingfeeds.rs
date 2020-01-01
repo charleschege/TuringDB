@@ -24,9 +24,35 @@ use turingfeeds::{
 #[async_std::main]
 async fn main() -> Result<()>{
     // Check if database repository exists, if not exit with an error
-    let data = TuringFeeds::new().await;
-    dbg!(&data);
-    dbg!(data.init().await?);
+    let mut db = TuringFeeds::new().await;
+    dbg!(&db);
+    dbg!(&db.init().await?);
+
+    let data = TuringFeedsDB::new()
+    .await
+    .identifier("Data1")
+    .await;
+    let data2 = TuringFeedsDB::new()
+    .await
+    .identifier("Data2")
+    .await;
+    let data3 = TuringFeedsDB::new()
+    .await
+    .identifier("Data3")
+    .await;
+
+    let data4 = TuringFeedsDB::new()
+    .await
+    .identifier("Data3")
+    .await;
+
+
+    db.memdb_add(data).await;
+    db.memdb_add(data2).await;
+    db.memdb_add(data3).await;
+    dbg!(db.memdb_add(data4).await);
+    dbg!(&db);
+    db.commit().await?;
 
     /*match TuringFeeds::new().await.init().await {
         Ok(val) => {
@@ -53,7 +79,6 @@ async fn main() -> Result<()>{
         }
     }*/
     let document = TFDocument::new().await;
-    let db = TuringFeedsDB::new().await;
 /*
     for n in 1..6 {
         let table = format!("trial_table{}", n);
