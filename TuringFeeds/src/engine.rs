@@ -262,54 +262,6 @@ impl TFDocument {
 	}
 }
 
-#[derive(Debug)]
-pub struct TFDocumentData<T> where T: std::fmt::Debug + std::cmp::PartialEq {
-	data: T,
-}
-
-#[derive(Debug)]
-pub struct DatabaseMethods {
-	command: TuringCommand,
-	db: String,
-}
-
-#[derive(Debug)]
-pub struct DocumentMethods<T> {
-	command: TuringCommand,
-	db: String,
-	document: String,
-	data: T,
-}
-
-/// Commands to perform on the repo and its contents
-#[derive(Debug)]
-pub enum TuringCommand {
-	/// Initialize the Repository
-	InitRepo,
-	/// Delete the Repository
-	DropRepo,
-	/// Perform a checksum of the database
-	ChecksumDatabase,
-	/// Perform a checksum of the database
-	ChecksumTable,
-	/// Create a database
-	CreateDatabase,
-	/// Read contents of a database
-	FetchDatabase,
-	/// Modify a database
-	ModifyDatabase,
-	/// Delete a database
-	DropDatabase,
-	/// Create a document
-	CreateDocument,
-	/// Read a particular document
-	FetchDocument,
-	/// Updata a document
-	ModifyDocument,
-	/// Remove a document
-	DeleteDocument,
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 enum DocumentRights {
 	/// Create Access
