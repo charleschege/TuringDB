@@ -1,9 +1,9 @@
 mod engine;
 mod errors;
-mod loggers;
 mod global;
+mod loggers;
 
-pub use engine::{TuringFeeds, TFDocument, TuringFeedsDB};
+pub use engine::{TFDocument, TuringFeeds, TuringFeedsDB};
 pub use errors::TuringFeedsError;
-pub use loggers::{ErrorLogger};
 pub use global::*;
+pub use loggers::ErrorLogger;

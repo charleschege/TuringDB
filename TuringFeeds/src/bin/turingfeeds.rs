@@ -1,19 +1,13 @@
 #![forbid(unsafe_code)]
 
 use async_std::{
-    task,
     fs::{File, OpenOptions},
+    io::{prelude::*, stdout, ErrorKind},
     net::{TcpListener, TcpStream},
-    io::{ErrorKind, prelude::*, stdout},
+    task,
 };
 
-use turingfeeds::{
-    TuringFeeds,
-    TuringFeedsDB,
-    TFDocument,
-    TuringFeedsError,
-    Result,
-};
+use turingfeeds::{Result, TFDocument, TuringFeeds, TuringFeedsDB, TuringFeedsError};
 
 /// When using a queue to log data, ensure that the queue work completes before the db shuts down
 /// Otherwise, if a user forcefully shuts down the db, abort queue work
@@ -22,30 +16,17 @@ use turingfeeds::{
 /// Store access keys and blake2b hashes for databases in zbox
 /// Encrypt the database
 #[async_std::main]
-async fn main() -> Result<()>{
+async fn main() -> Result<()> {
     // Check if database repository exists, if not exit with an error
     let mut db = TuringFeeds::new().await;
     dbg!(&db);
     dbg!(&db.init().await?);
 
-    let data = TuringFeedsDB::new()
-    .await
-    .identifier("Data1")
-    .await;
-    let data2 = TuringFeedsDB::new()
-    .await
-    .identifier("Data2")
-    .await;
-    let data3 = TuringFeedsDB::new()
-    .await
-    .identifier("Data3")
-    .await;
+    let data = TuringFeedsDB::new().await.identifier("Data1").await;
+    let data2 = TuringFeedsDB::new().await.identifier("Data2").await;
+    let data3 = TuringFeedsDB::new().await.identifier("Data3").await;
 
-    let data4 = TuringFeedsDB::new()
-    .await
-    .identifier("Data3")
-    .await;
-
+    let data4 = TuringFeedsDB::new().await.identifier("Data3").await;
 
     db.memdb_add(data).await;
     db.memdb_add(data2).await;
@@ -64,11 +45,11 @@ async fn main() -> Result<()>{
                     if io_error.kind() == ErrorKind::NotFound {
                         writeln!(stdout(), "[✘ TURINGFEEDS] \nDatabase Doesn't Exist. Consider Creating One First!").await?;
                     }
-                    
+
                     if io_error.kind() == ErrorKind::PermissionDenied {
                         writeln!(stdout(),"[✘ TURINGFEEDS → PERMISSION DENIED] \nPermission To Access Repository is DENIED! \nCheck That You Have PERMISSION To ACCESS The Repository.").await?
                     }
-                    
+
                     if io_error.kind() == ErrorKind::UnexpectedEof {
                         writeln!(stdout(),"[✘ TURINGFEEDS → CORRUPTED] \nCORRUPTED! Not Read The Whole File.").await?
                     }
@@ -79,7 +60,7 @@ async fn main() -> Result<()>{
         }
     }*/
     let document = TFDocument::new().await;
-/*
+    /*
     for n in 1..6 {
         let table = format!("trial_table{}", n);
         let id = format!("trial_table{}", n);
@@ -94,8 +75,8 @@ async fn main() -> Result<()>{
         dbg!(&end);
     }*/
 
-        // TODO Seek the end of the log
-    
+    // TODO Seek the end of the log
+
     //dbg!(&data);
     Ok(())
 }

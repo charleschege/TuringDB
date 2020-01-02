@@ -1,10 +1,6 @@
-use tai64::TAI64N;
+use async_std::{fs::OpenOptions, io::prelude::*, path::PathBuf};
 use custom_codes::FileOps;
-use async_std::{
-    fs::OpenOptions,
-    io::{prelude::*},
-    path::PathBuf,
-};
+use tai64::TAI64N;
 
 use crate::TuringFeedsError;
 
@@ -28,10 +24,10 @@ impl Default for Operation {
 }
 
 #[derive(Debug)]
-pub struct ErrorLogger{
+pub struct ErrorLogger {
     kind: TuringFeedsError,
     time: TAI64N,
-    operation: Operation
+    operation: Operation,
 }
 
 impl ErrorLogger {
@@ -57,22 +53,19 @@ impl ErrorLogger {
 
     pub async fn log(self) -> Result<FileOps, TuringFeedsError> {
         let mut db_path = PathBuf::new();
-		db_path.push("TuringFeedsDB");
-		db_path.push("TuringFeeds.log");
+        db_path.push("TuringFeedsDB");
+        db_path.push("TuringFeeds.log");
 
         let mut file = OpenOptions::new()
             .create(true)
             .write(false)
             .append(true)
-            .open(db_path).await?;
+            .open(db_path)
+            .await?;
 
-		match writeln!(file, "{:?}", self).await
-			{
-				Ok(_) => Ok(FileOps::AppendTrue),
-				Err(error) => Err(TuringFeedsError::IoError(error)),
-			}
+        match writeln!(file, "{:?}", self).await {
+            Ok(_) => Ok(FileOps::AppendTrue),
+            Err(error) => Err(TuringFeedsError::IoError(error)),
+        }
     }
-
-    
 }
-

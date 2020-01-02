@@ -1,19 +1,10 @@
 use redactedsecret::SecretString;
+use std::{iter, path::PathBuf};
 use tai64::TAI64N;
-use std::{
-    iter,
-    path::PathBuf
-};
 
-use rand::{
-    Rng,
-    thread_rng,
-    distributions::Alphanumeric,
-};
+use rand::{distributions::Alphanumeric, thread_rng, Rng};
 
-use crate::{
-    TuringFeedsError,
-};
+use crate::TuringFeedsError;
 
 pub type Result<T> = std::result::Result<T, TuringFeedsError>;
 
@@ -34,7 +25,7 @@ pub struct RandIdentifier;
 impl RandIdentifier {
     pub async fn build() -> String {
         let mut rng = thread_rng();
-        
+
         iter::repeat(())
             .map(|()| rng.sample(Alphanumeric))
             .take(64)

@@ -21,7 +21,7 @@ impl From<async_std::io::Error> for TuringFeedsError {
 
 impl std::fmt::Display for TuringFeedsError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "TuringFeedsError::IoError(error)", )
+        write!(f, "TuringFeedsError::IoError(error)",)
     }
 }
 
