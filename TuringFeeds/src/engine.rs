@@ -53,7 +53,7 @@ impl TuringFeeds {
 	pub async fn init(&self) -> Result<&TuringFeeds> {
 		let mut repo_path = PathBuf::new();
 
-		repo_path.push("TuringFeeds");
+		repo_path.push("TuringFeedsRepo");
 		repo_path.push("REPO");
 		repo_path.set_extension("log");
 
@@ -75,7 +75,7 @@ impl TuringFeeds {
 	/// Create a new repository/directory that contains the databases
 	pub async fn create() -> Result<FileOps> {
 		let mut repo_path = PathBuf::new();
-		repo_path.push("TuringFeeds");
+		repo_path.push("TuringFeedsRepo");
 		
 		match DirBuilder::new()
 			.recursive(false)
@@ -85,12 +85,11 @@ impl TuringFeeds {
 				Err(error) => Err(TuringFeedsError::IoError(error)),
 			}
 	}
-
 	/// Create the Metadata file or add data to the metadata file
 	pub async fn commit(&self) -> Result<FileOps>{
 
 		let mut repo_path = PathBuf::new();
-		repo_path.push("TuringFeeds");
+		repo_path.push("TuringFeedsRepo");
 		repo_path.push("REPO");
 		repo_path.set_extension("log");
 
@@ -105,7 +104,7 @@ impl TuringFeeds {
 				file.write_all(&data.as_bytes().to_owned()).await?;
 				file.sync_all().await?;
 				
-				Ok(FileOps::CreateTrue)
+				Ok(FileOps::WriteTrue)
 			},
 			Err(error) => Err(TuringFeedsError::IoError(error)),
 		}
@@ -261,6 +260,54 @@ impl TFDocument {
 
 		self
 	}
+}
+
+#[derive(Debug)]
+pub struct TFDocumentData<T> where T: std::fmt::Debug + std::cmp::PartialEq {
+	data: T,
+}
+
+#[derive(Debug)]
+pub struct DatabaseMethods {
+	command: TuringCommand,
+	db: String,
+}
+
+#[derive(Debug)]
+pub struct DocumentMethods<T> {
+	command: TuringCommand,
+	db: String,
+	document: String,
+	data: T,
+}
+
+/// Commands to perform on the repo and its contents
+#[derive(Debug)]
+pub enum TuringCommand {
+	/// Initialize the Repository
+	InitRepo,
+	/// Delete the Repository
+	DropRepo,
+	/// Perform a checksum of the database
+	ChecksumDatabase,
+	/// Perform a checksum of the database
+	ChecksumTable,
+	/// Create a database
+	CreateDatabase,
+	/// Read contents of a database
+	FetchDatabase,
+	/// Modify a database
+	ModifyDatabase,
+	/// Delete a database
+	DropDatabase,
+	/// Create a document
+	CreateDocument,
+	/// Read a particular document
+	FetchDocument,
+	/// Updata a document
+	ModifyDocument,
+	/// Remove a document
+	DeleteDocument,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

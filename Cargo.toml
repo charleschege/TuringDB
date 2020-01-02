@@ -1,19 +1,18 @@
 [package]
-name = "turingfeeds"
+name = "turingfeeds-repo"
 version = "0.1.0"
 authors = ["Charles Chege <charleschege@protonmail.ch>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[workspace]
+members = [
+	"TuringFeeds",
+	"TuringFeedsHelpers",
+]
+
+[[bin]]
+name = "turingfeeds"
+path = "TuringFeeds/src/bin/turingfeeds.rs"
 
 [dependencies]
-async-std = { version = "1.2.0", features = ["attributes"] }
-rand = "0.7.2"
-custom_codes =  { path = "../custom_codes" } #"1.2.3"
-timelite = "1.0.4"
-tai64 = { version = "3.1.0", features = ["serde"] }
-seahash = "3.0.6"
-redactedsecret = { path = "../RedactedSecret" } #"0.4.1"
-walkdir = "2.2.9"
-ron = "0.5.1"
-serde = { version = "1.0.103", features = ["derive"] }
+async-std = { version = "1.4.0", features = ["attributes"] }

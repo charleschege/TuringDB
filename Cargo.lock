@@ -483,7 +483,22 @@ dependencies = [
  "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
  "tai64 3.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "timelite 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "turingfeeds-helpers 0.1.0",
  "walkdir 2.2.9 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "turingfeeds-helpers"
+version = "0.1.0"
+dependencies = [
+ "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "turingfeeds-repo"
+version = "0.1.0"
+dependencies = [
+ "async-std 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
