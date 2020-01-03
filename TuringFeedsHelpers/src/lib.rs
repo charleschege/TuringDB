@@ -15,20 +15,29 @@ impl DocumentMethods {
             data: Vec::default(),
         }
     }
-    pub async fn db(&mut self, value: String) -> &Self {
+    pub async fn add_db(&mut self, value: String) -> &Self {
         self.db = value;
 
         self
     }
-    pub async fn document(&mut self, value: String) -> &Self {
+    pub async fn add_document(&mut self, value: String) -> &Self {
         self.document = value;
 
         self
     }
-    pub async fn data(&mut self, value: Vec<u8>) -> &Self {
+    pub async fn add_data(&mut self, value: Vec<u8>) -> &Self {
         self.data = value;
 
         self
+    }
+    pub async fn get_db(&self) -> String {
+        self.db.to_owned()
+    }
+    pub async fn get_document(&self) -> String {
+        self.document.to_owned()
+    }
+    pub async fn get_data(&self) -> Vec<u8> {
+        self.data.to_owned()
     }
 }
 
