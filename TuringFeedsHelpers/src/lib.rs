@@ -49,7 +49,7 @@ pub enum TuringCommand {
     /// Delete the Repository
     DropRepo,
     /// Perform a checksum of the database
-    ChecksumDatabase,
+    ChecksumDatabase(String),
     /// Perform a checksum of the database
     ChecksumTable(String),
     /// Create a database
