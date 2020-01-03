@@ -1,41 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct TFDocumentData<T>
-where
-    T: std::fmt::Debug + std::cmp::PartialEq,
-{
-    data: T,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct DatabaseMethods {
-    command: TuringCommand,
-    db: String,
-}
-
-impl DatabaseMethods {
-    pub async fn new() -> Self {
-        Self {
-            command: TuringCommand::Unspecified,
-            db: String::default(),
-        }
-    }
-    pub async fn command(&mut self, value: TuringCommand) -> &Self {
-        self.command = value;
-
-        self
-    }
-    pub async fn db(&mut self, value: String) -> &Self {
-        self.db = value;
-
-        self
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, PartialOrd, Eq)]
 pub struct DocumentMethods {
-    command: TuringCommand,
     db: String,
     document: String,
     data: Vec<u8>,
@@ -44,16 +10,10 @@ pub struct DocumentMethods {
 impl DocumentMethods {
     pub async fn new() -> Self {
         Self {
-            command: TuringCommand::Unspecified,
             db: String::default(),
             document: String::default(),
             data: Vec::default(),
         }
-    }
-    pub async fn command(&mut self, value: TuringCommand) -> &Self {
-        self.command = value;
-
-        self
     }
     pub async fn db(&mut self, value: String) -> &Self {
         self.db = value;
@@ -73,7 +33,7 @@ impl DocumentMethods {
 }
 
 /// Commands to perform on the repo and its contents
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd)]
 pub enum TuringCommand {
     /// Initialize the Repository
     InitRepo,
@@ -82,23 +42,23 @@ pub enum TuringCommand {
     /// Perform a checksum of the database
     ChecksumDatabase,
     /// Perform a checksum of the database
-    ChecksumTable,
+    ChecksumTable(String),
     /// Create a database
-    CreateDatabase,
+    CreateDatabase(String),
     /// Read contents of a database
-    FetchDatabase,
+    FetchDatabase(String),
     /// Modify a database
-    ModifyDatabase,
+    ModifyDatabase(String),
     /// Delete a database
-    DropDatabase,
+    DropDatabase(String),
     /// Create a document
-    CreateDocument,
+    CreateDocument(DocumentMethods),
     /// Read a particular document
-    FetchDocument,
+    FetchDocument(DocumentMethods),
     /// Updata a document
-    ModifyDocument,
+    ModifyDocument(DocumentMethods),
     /// Remove a document
-    DeleteDocument,
+    DeleteDocument(DocumentMethods),
     /// Give a default option
     Unspecified,
 }
