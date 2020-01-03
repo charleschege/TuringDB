@@ -18,3 +18,4 @@ walkdir = "2.2.9"
 ron = "0.5.1"
 serde = { version = "1.0.14", features = ["derive"] }
 turingfeeds-helpers = { path = "../TuringFeedsHelpers" }
+bincode = "1.2.1"

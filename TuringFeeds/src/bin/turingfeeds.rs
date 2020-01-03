@@ -2,27 +2,23 @@
 
 use async_std::{
     fs::{File, OpenOptions},
-    io::{prelude::*, stdout, ErrorKind},
-    net::{TcpListener, TcpStream},
+    net::{TcpListener, TcpStream, SocketAddr},
     task,
+    prelude::*,
 };
 
 use turingfeeds::{Result, TFDocument, TuringFeeds, TuringFeedsDB, TuringFeedsError};
+use turingfeeds_helpers::{DatabaseMethods, DocumentMethods, TuringCommand, TFDocumentData};
 
-/// When using a queue to log data, ensure that the queue work completes before the db shuts down
-/// Otherwise, if a user forcefully shuts down the db, abort queue work
-/// Use difference to update logs
-/// Add access rights and prevent adding rights without a superuser and access key
-/// Store access keys and blake2b hashes for databases in zbox
-/// Encrypt the database
+const ADDRESS: &str = "127.0.0.1:43434";
+
 #[async_std::main]
 async fn main() -> Result<()> {
     // Check if database repository exists, if not exit with an error
     let mut db = TuringFeeds::new().await;
-    dbg!(&db);
-    dbg!(&db.init().await?);
+    db.init().await?;
 
-    let data = TuringFeedsDB::new().await.identifier("Data1").await;
+    /*let data = TuringFeedsDB::new().await.identifier("Data1").await;
     let data2 = TuringFeedsDB::new().await.identifier("Data2").await;
     let data3 = TuringFeedsDB::new().await.identifier("Data3").await;
 
@@ -32,51 +28,49 @@ async fn main() -> Result<()> {
     db.memdb_add(data2).await;
     db.memdb_add(data3).await;
     dbg!(db.memdb_add(data4).await);
-    dbg!(&db);
-    db.commit().await?;
+    dbg!(db);
+    db.commit().await?;*/
 
-    /*match TuringFeeds::new().await.init().await {
-        Ok(val) => {
-            data = val;
+    match TcpListener::bind(ADDRESS).await {
+        Ok(listener) => {
+            println!("Listening on Address: {}", listener.local_addr()?);
+            while let Some(stream) = listener.incoming().next().await {
+                let stream = stream?;
+                task::spawn(async {
+                    match handle_client(stream).await {
+                        Ok(addr) => println!("[TERMINATED] ip({}) port({})", addr.ip(), addr.port()),
+                        Err(error) => eprintln!("[STREAM ERROR]: {}", error),
+                    }
+                });
+            }
         },
         Err(error) => {
-            match error {
-                TuringFeedsError::IoError(io_error) => {
-                    if io_error.kind() == ErrorKind::NotFound {
-                        writeln!(stdout(), "[✘ TURINGFEEDS] \nDatabase Doesn't Exist. Consider Creating One First!").await?;
-                    }
-
-                    if io_error.kind() == ErrorKind::PermissionDenied {
-                        writeln!(stdout(),"[✘ TURINGFEEDS → PERMISSION DENIED] \nPermission To Access Repository is DENIED! \nCheck That You Have PERMISSION To ACCESS The Repository.").await?
-                    }
-
-                    if io_error.kind() == ErrorKind::UnexpectedEof {
-                        writeln!(stdout(),"[✘ TURINGFEEDS → CORRUPTED] \nCORRUPTED! Not Read The Whole File.").await?
-                    }
-                },
-                TuringFeedsError::RonDeError(error) => writeln!(stdout(),"[✘ TURINGFEEDS → INITIALIZE ERROR] \nThe metadata file `REPO.log` seems to be corrupted. This file is used to initialize the Database Repository!\nTechnical error: {:?}", error).await?,
-                _ =>  writeln!(stdout(),"[TURINGFEEDS] \n{:?}", error).await?
-            }
+            panic!(error);
         }
-    }*/
-    let document = TFDocument::new().await;
-    /*
-    for n in 1..6 {
-        let table = format!("trial_table{}", n);
-        let id = format!("trial_table{}", n);
-        document.clone().id(&table).await;
-        db.clone().identifier(&id).await
-            .memdb_add(document.clone()).await;
+    }
 
-        dbg!(&db);
-
-        let end = data.clone().memdb_add(db.clone()).await;
-
-        dbg!(&end);
-    }*/
-
-    // TODO Seek the end of the log
-
-    //dbg!(&data);
     Ok(())
+}
+
+async fn handle_client(mut stream: TcpStream) -> Result<SocketAddr> {
+    let mut buffer = [0; 1024];
+    let data_header = b"+----- ECHOOOOO -----+ \n";
+    let data_footer = b"+--------------------+ \n\r";
+
+    loop {
+        let bytes_read = stream.read(&mut buffer).await?; // Get the amount of bytes sent whether the buffer is full or not
+        if bytes_read == 0 {
+            return Ok(stream.peer_addr()?);
+        }
+        //stream.peek(&mut buf).await?;
+        stream.write(data_header).await?;
+        dbg!(String::from_utf8(buffer[0..bytes_read].to_vec()).unwrap().trim().to_owned() + &foo().await);
+        //stream.write(&buffer[..foo().await]).await?;
+        //stream.write(&buffer[..bytes_read]).await?;
+        stream.write(data_footer).await?;
+    }
+}
+
+async fn foo() -> String {
+    "toFoo".to_owned()
 }
