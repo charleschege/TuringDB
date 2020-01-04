@@ -5,10 +5,11 @@ use async_std::{
     net::{TcpListener, TcpStream, SocketAddr},
     task,
     prelude::*,
+    io::{prelude::*, Read, BufReader},
 };
 
 use turingfeeds::{Result, TFDocument, TuringFeeds, TuringFeedsDB, TuringFeedsError};
-use turingfeeds_helpers::{DatabaseMethods, DocumentMethods, TuringCommand, TFDocumentData};
+use turingfeeds_helpers::{DocumentMethods, TuringCommand};
 
 const ADDRESS: &str = "127.0.0.1:43434";
 
@@ -53,6 +54,30 @@ async fn main() -> Result<()> {
 }
 
 async fn handle_client(mut stream: TcpStream) -> Result<SocketAddr> {
+    println!("Incoming stream from to {}", stream.peer_addr()?);
+    let mut buffer = [0; 1024];
+    let data_header = b"+----- ECHOOOOO -----+ \n";
+    let data_footer = b"+--------------------+ \n\r";
+
+    loop {
+        let bytes_read = stream.read(&mut buffer).await?; // Get the amount of bytes sent whether the buffer is full or not
+        if bytes_read == 0 {
+            return Ok(stream.peer_addr()?);
+        }
+        
+        let to_stream = bincode::deserialize::<TuringCommand>(&buffer[0..bytes_read])?;
+        stream.write(data_header).await?;
+        dbg!(to_stream);
+        //stream.write(&to_stream.into_bytes()).await?;
+        //stream.write(&buffer[..foo().await]).await?;
+        //stream.write(&buffer[..bytes_read]).await?;
+        stream.write(data_footer).await?;
+    }
+}
+
+
+/*
+async fn handle_client(mut stream: TcpStream) -> Result<SocketAddr> {
     let mut buffer = [0; 1024];
     let data_header = b"+----- ECHOOOOO -----+ \n";
     let data_footer = b"+--------------------+ \n\r";
@@ -64,13 +89,11 @@ async fn handle_client(mut stream: TcpStream) -> Result<SocketAddr> {
         }
         //stream.peek(&mut buf).await?;
         stream.write(data_header).await?;
-        dbg!(String::from_utf8(buffer[0..bytes_read].to_vec()).unwrap().trim().to_owned() + &foo().await);
+        let to_stream = String::from_utf8(buffer[0..bytes_read].to_vec()).unwrap().trim().to_owned() + &foo().await + "\n";
+        stream.write(&to_stream.into_bytes()).await?;
         //stream.write(&buffer[..foo().await]).await?;
         //stream.write(&buffer[..bytes_read]).await?;
         stream.write(data_footer).await?;
     }
 }
-
-async fn foo() -> String {
-    "toFoo".to_owned()
-}
+*/

@@ -4,6 +4,7 @@ pub enum TuringFeedsError {
     WalkDirError(walkdir::Error),
     RonSerError(ron::ser::Error),
     RonDeError(ron::de::Error),
+    BincodeError(bincode::Error),
     Unspecified,
 }
 
@@ -40,5 +41,11 @@ impl From<ron::ser::Error> for TuringFeedsError {
 impl From<ron::de::Error> for TuringFeedsError {
     fn from(error: ron::de::Error) -> Self {
         TuringFeedsError::RonDeError(error)
+    }
+}
+
+impl From<bincode::Error> for TuringFeedsError {
+    fn from(error: bincode::Error) -> Self {
+        TuringFeedsError::BincodeError(error)
     }
 }
