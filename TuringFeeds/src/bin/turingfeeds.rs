@@ -12,6 +12,7 @@ use turingfeeds::{Result, TFDocument, TuringFeeds, TuringFeedsDB, TuringFeedsErr
 use turingfeeds_helpers::{DocumentMethods, TuringCommand};
 
 const ADDRESS: &str = "127.0.0.1:43434";
+const BUFFER_CAPACITY: usize = 64 * 1024;
 
 #[async_std::main]
 async fn main() -> Result<()> {
@@ -40,7 +41,9 @@ async fn main() -> Result<()> {
                 task::spawn(async {
                     match handle_client(stream).await {
                         Ok(addr) => println!("[TERMINATED] ip({}) port({})", addr.ip(), addr.port()),
-                        Err(error) => eprintln!("[STREAM ERROR]: {}", error),
+                        Err(error) => {
+                            eprintln!("{:?}", errors_printable(error).await);
+                        },
                     }
                 });
             }
@@ -53,25 +56,31 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
+async fn errors_printable(error: TuringFeedsError) -> String {
+    match error {
+        TuringFeedsError::IoError(error) => format!("[STREAM ERROR]: {:?}", error.kind()),
+        TuringFeedsError::RonDeError(error) => format!("[STREAM ERROR]: {}", error),
+        TuringFeedsError::RonSerError(error) => format!("[STREAM ERROR]: {}", error),
+        TuringFeedsError::WalkDirError(error) => format!("[STREAM ERROR]: {}", error),
+        TuringFeedsError::BincodeError(error) => format!("[STREAM ERROR]: {}", error),
+        TuringFeedsError::Unspecified => format!("[STREAM ERROR]: {}", "UNSPECIFIED"),
+    }
+}
+
 async fn handle_client(mut stream: TcpStream) -> Result<SocketAddr> {
     println!("Incoming stream from to {}", stream.peer_addr()?);
-    let mut buffer = [0; 1024];
-    let data_header = b"+----- ECHOOOOO -----+ \n";
-    let data_footer = b"+--------------------+ \n\r";
+    let mut buffer = [0; BUFFER_CAPACITY];
 
     loop {
-        let bytes_read = stream.read(&mut buffer).await?; // Get the amount of bytes sent whether the buffer is full or not
+        let bytes_read = stream.read(&mut buffer).await?;
         if bytes_read == 0 {
             return Ok(stream.peer_addr()?);
         }
-        
+        // `0..bytes_read` Get the amount of bytes sent whether the buffer is full or not
         let to_stream = bincode::deserialize::<TuringCommand>(&buffer[0..bytes_read])?;
-        stream.write(data_header).await?;
-        dbg!(to_stream);
-        //stream.write(&to_stream.into_bytes()).await?;
-        //stream.write(&buffer[..foo().await]).await?;
-        //stream.write(&buffer[..bytes_read]).await?;
-        stream.write(data_footer).await?;
+        //stream.write(data_header).await?;
+        let data_out = &bincode::serialize::<TuringCommand>(&to_stream)?;
+        stream.write(data_out).await?;
     }
 }
 
