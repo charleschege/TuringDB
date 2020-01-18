@@ -87,3 +87,12 @@ pub enum OpsOutcome {
     Failure(Vec<u8>),
     Stream(Vec<u8>),
 }
+
+type Key = String;
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd)]
+pub enum Permissions {
+    SuperUser(Key),
+    PrivilegedUser(Key),
+    UnprivilegedUser(Key),
+}
