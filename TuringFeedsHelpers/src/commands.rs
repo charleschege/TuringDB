@@ -83,9 +83,17 @@ pub enum RepoCommands {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum OpsOutcome {
-    Success(Option<Vec<u8>>),
+    Success(DbOpsOutcome),
     Failure(OperationErrors),
     Stream(Vec<u8>),
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub enum DbOpsOutcome {
+    Success,
+    OpFailure(OperationErrors),
+    SuccessWithData(Vec<u8>),
+    SuccessStreamData(Vec<u8>),
 }
 
 type Key = String;
