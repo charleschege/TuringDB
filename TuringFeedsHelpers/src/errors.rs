@@ -48,6 +48,7 @@ pub enum OperationErrors {
     Bincode(BincodeErrors),
     Ron(RonErrors),
     Integrity(IntegrityErrors),
+    DbOps(custom_codes::DbOps),
     Unspecified,
 }
 
