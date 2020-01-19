@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
-use crate::DocumentMethods;
+use crate::{DocumentMethods, OperationErrors};
 
 /// Commands to perform on the repo and its contents by the repo owner known as `SuperUser`
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum SuperUserTuringCommands {
     /// Initialize the Repository
     InitRepo,
@@ -33,7 +33,7 @@ pub enum SuperUserTuringCommands {
 }
 
 /// Commands to perform on the repo and its contents by a privileged user
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum PrivilegedTuringCommands {
     /// Perform a checksum of the database
     ChecksumDatabase(String),
@@ -60,7 +60,7 @@ pub enum PrivilegedTuringCommands {
 }
 
 /// Commands to perform on the repo and its contents by an unprivileged user
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum UnprivilegedTuringCommands {    
     /// Create a document
     CreateDocument(DocumentMethods),
@@ -74,23 +74,23 @@ pub enum UnprivilegedTuringCommands {
     Unspecified,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum RepoCommands {
-    SuperUserTuringCommands,
-    PrivilegedTuringCommands,
-    UnprivilegedTuringCommands,
+    SuperUser(SuperUserTuringCommands),
+    Privileged(PrivilegedTuringCommands),
+    UnPrivileged(UnprivilegedTuringCommands),
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum OpsOutcome {
     Success(Option<Vec<u8>>),
-    Failure(Vec<u8>),
+    Failure(OperationErrors),
     Stream(Vec<u8>),
 }
 
 type Key = String;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum Permissions {
     SuperUser(Key),
     PrivilegedUser(Key),
