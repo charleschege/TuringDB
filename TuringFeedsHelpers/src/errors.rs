@@ -44,11 +44,17 @@ impl From<bincode::Error> for TuringFeedsError {
 /// Might also help where data is being converted into other formats
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum OperationErrors {
-    IoErrors,
+    Io(IoErrors),
+    Bincode(BincodeErrors),
+    Ron(RonErrors),
+    Integrity(IntegrityErrors),
+    Unspecified,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub enum RonErrors {
     RonSerError,
     RonDeError,
-    BincodeErrors,
-    Unspecified,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -84,4 +90,10 @@ pub enum BincodeErrors {
     SizeLimit,
     SequenceMustHaveLength,
     Custom(String),
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub enum IntegrityErrors {
+    IntegrityConsistent,
+    IntegrityCorrupted,
 }
