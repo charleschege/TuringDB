@@ -15,9 +15,7 @@ pub enum SuperUserTuringCommands {
     /// Create a database
     CreateDatabase(String),
     /// Read contents of a database
-    FetchDatabase(String),
-    /// Modify a database
-    ModifyDatabase(String),
+    FetchDatabases(String),
     /// Delete a database
     DropDatabase(String),
     /// Create a document
@@ -103,4 +101,10 @@ pub enum Permissions {
     SuperUser(Key),
     PrivilegedUser(Key),
     UnprivilegedUser(Key),
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub enum TuringHeaders {
+    StartStream,
+    EndStream,
 }

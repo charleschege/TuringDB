@@ -3,6 +3,7 @@ use serde::{Serialize, Deserialize};
 #[derive(Debug)]
 pub enum TuringFeedsError {
     IoError(async_std::io::Error),
+    OsString(std::ffi::OsString),
     RonSerError(ron::ser::Error),
     RonDeError(ron::de::Error),
     BincodeError(bincode::Error),
@@ -18,6 +19,12 @@ impl Default for TuringFeedsError {
 impl From<async_std::io::Error> for TuringFeedsError {
     fn from(error: async_std::io::Error) -> Self {
         TuringFeedsError::IoError(error)
+    }
+}
+
+impl From<std::ffi::OsString> for TuringFeedsError {
+    fn from(error: std::ffi::OsString) -> Self {
+        TuringFeedsError::OsString(error)
     }
 }
 
