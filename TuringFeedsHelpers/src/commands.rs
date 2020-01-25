@@ -104,7 +104,4 @@ pub enum Permissions {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub enum TuringHeaders {
-    StartStream,
-    EndStream,
-}
+pub struct TuringTerminator;
