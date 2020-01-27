@@ -4,7 +4,7 @@ use tai64::TAI64N;
 
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 
-use crate::TuringFeedsError;
+use turingfeeds_helpers::TuringFeedsError;
 
 pub type Result<T> = std::result::Result<T, TuringFeedsError>;
 

@@ -1,8 +1,7 @@
 use async_std::{fs::OpenOptions, io::prelude::*, path::PathBuf};
 use custom_codes::FileOps;
 use tai64::TAI64N;
-
-use crate::TuringFeedsError;
+use turingfeeds_helpers::TuringFeedsError;
 
 #[derive(Debug)]
 pub enum Operation {

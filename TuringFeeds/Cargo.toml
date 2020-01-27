@@ -19,3 +19,6 @@ ron = "0.5.1"
 serde = { version = "1.0.14", features = ["derive"] }
 turingfeeds-helpers = { path = "../TuringFeedsHelpers" }
 bincode = "1.2.1"
+lazy_static = "1.4.0"
+dashmap = { version = "3.2.2", features = ["serde"] }
+once_cell = "1.3.1"

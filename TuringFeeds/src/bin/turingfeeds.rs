@@ -1,38 +1,49 @@
 #![forbid(unsafe_code)]
 
 use async_std::{
-    fs::{File, OpenOptions},
     net::{TcpListener, TcpStream, SocketAddr},
     task,
     prelude::*,
-    io::{prelude::*, Read, BufReader},
+    io::ErrorKind,    
 };
+use custom_codes::DbOps;
 
-use turingfeeds::{Result, TFDocument, TuringFeeds, TuringFeedsDB, TuringFeedsError};
-use turingfeeds_helpers::{DocumentMethods, TuringCommand};
+use turingfeeds::{Result, TuringFeeds, TuringFeedsDB, TFDocument};
+use turingfeeds_helpers::{OpsOutcome, TuringFeedsError, DocumentMethods, RepoCommands, PrivilegedTuringCommands, UnprivilegedTuringCommands, SuperUserTuringCommands, OperationErrors, IntegrityErrors, TuringTerminator};
 
 const ADDRESS: &str = "127.0.0.1:43434";
-const BUFFER_CAPACITY: usize = 64 * 1024;
+const BUFFER_CAPACITY: usize = 64 * 1024; //16Kb
+
+
+use once_cell::sync::OnceCell;
+static REPO: OnceCell<TuringFeeds> = OnceCell::new();
+
+// TODO 0. Move RwLock to lock a specific database instead of the whole REPO
+// TODO 1. CREATE REPO
+// TODO 2. DROP REPO
+// TODO 3. CREATE DATABASE
+// TODO LIST DATABASES
+// TODO 4. DROP DATABASE
+// TODO 5. GET DATABASE STATISTICS
+// TODO 6. CREATE TABLE
+// TODO 7. READ TABLE
+// TODO LIST TABLES
+// TODO 8. UPDATE TABLE
+// TODO 9. DELETE TABLE
+// TODO 10. Improve error to the client using the `error_to_client()` function
+// TODO 11. Add json conversion for replying to other programming languages
+// TODO Add state machines to ensure successful command completion before shutdown like Idle, Processing, Finished try Rc or a counter
 
 #[async_std::main]
 async fn main() -> Result<()> {
     // Check if database repository exists, if not exit with an error
-    let mut db = TuringFeeds::new().await;
-    db.init().await?;
+    match REPO.set(TuringFeeds::new().await.init().await?) {
+        Ok(_) => (),
+        Err(error) => { eprintln!("{:?}", error); panic!(); }
+    }
 
-    /*let data = TuringFeedsDB::new().await.identifier("Data1").await;
-    let data2 = TuringFeedsDB::new().await.identifier("Data2").await;
-    let data3 = TuringFeedsDB::new().await.identifier("Data3").await;
-
-    let data4 = TuringFeedsDB::new().await.identifier("Data3").await;
-
-    db.memdb_add(data).await;
-    db.memdb_add(data2).await;
-    db.memdb_add(data3).await;
-    dbg!(db.memdb_add(data4).await);
-    dbg!(db);
-    db.commit().await?;*/
-
+    dbg!(&REPO);   
+    
     match TcpListener::bind(ADDRESS).await {
         Ok(listener) => {
             println!("Listening on Address: {}", listener.local_addr()?);
@@ -40,9 +51,11 @@ async fn main() -> Result<()> {
                 let stream = stream?;
                 task::spawn(async {
                     match handle_client(stream).await {
-                        Ok(addr) => println!("[TERMINATED] ip({}) port({})", addr.ip(), addr.port()),
+                        Ok(addr) => {
+                            println!("[TERMINATED] ip({}) port({})", addr.ip(), addr.port())
+                        },
                         Err(error) => {
-                            eprintln!("{:?}", errors_printable(error).await);
+                            //--eprintln!("{:?}", errors_printable(error).await);
                         },
                     }
                 });
@@ -56,53 +69,164 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
+async fn handle_client(mut stream: TcpStream) -> Result<SocketAddr> {
+    println!("↓[CONNECTED] device[{}]", stream.peer_addr()?);
+    let mut buffer = [0; BUFFER_CAPACITY];
+    let mut container_buffer: Vec<u8> = Vec::new();
+    let mut bytes_read: usize;
+
+    loop {
+        bytes_read = stream.read(&mut buffer).await?;
+        container_buffer.append(&mut buffer[..bytes_read].to_owned());
+        //container_buffer.lock().await.append(&mut buffer[..bytes_read].to_owned());
+
+        if bytes_read == 0 {
+            return Ok(stream.peer_addr()?);
+        }
+
+        match bincode::deserialize::<TuringTerminator>(&buffer[..bytes_read]) {
+            Ok(_) => {
+                // `0..bytes_read` Get the amount of bytes sent whether the buffer is full or not
+                let to_stream = bincode::deserialize::<RepoCommands>(&container_buffer)?;
+                
+                //solve the problem and write to the stream
+                //--let data_out = bincode::serialize::<OpsOutcome>(&repo_commands(to_stream).await)?;
+                //--stream.write(&data_out).await?;
+                dbg!("DONE");
+            },
+            Err(_) => continue, // If an error occurs while deserializing, that means data is still being transmitted
+        }
+        /*if &buffer[..bytes_read] == "\n".as_bytes() {
+            // `0..bytes_read` Get the amount of bytes sent whether the buffer is full or not
+            let to_stream = bincode::deserialize::<RepoCommands>(&container_buffer)?;
+            
+            //solve the problem and write to the stream
+            let data_out = bincode::serialize::<OpsOutcome>(&repo_commands(to_stream).await)?;
+            stream.write(&data_out).await?;
+            dbg!("DONE");
+        }*/
+    }
+}
+ /*
+async fn repo_commands(command: RepoCommands) -> OpsOutcome {
+    // Return a DbOps::EncounteredErrors
+    match command {
+        RepoCommands::SuperUser(target) => {
+            match superuser_commands(target).await {
+                Ok(DbOps::Created) => OpsOutcome::Success(None),
+                Ok(DbOps::RepoDeleted) => OpsOutcome::Success(None),
+                Ok(DbOps::DbIntegrityConsistent) => OpsOutcome::Success(None),
+                Ok(DbOps::DbIntegrityCorrupted) => 
+                OpsOutcome::Failure(OperationErrors::Integrity(IntegrityErrors::IntegrityCorrupted)),
+                Ok(DbOps::AlreadyExists) => OpsOutcome::Failure(OperationErrors::DbOps(DbOps::AlreadyExists)),
+                Ok(DbOps::DbCreated) => OpsOutcome::Failure(OperationErrors::DbOps(DbOps::DbCreated)),
+                Ok(DbOps::)
+            };
+            OpsOutcome::Failure(OperationErrors::Unspecified)
+            //error_to_client(error).await;
+        },
+        // TODO Make these two enum variants work using privileges
+        RepoCommands::Privileged(_) => OpsOutcome::Failure(OperationErrors::Unspecified),
+        RepoCommands::UnPrivileged(_) => OpsOutcome::Failure(OperationErrors::Unspecified),
+    }
+}
+
+*/
+
+async fn superuser_commands(command: SuperUserTuringCommands) -> Result<(DbOps, Option<Vec<u8>>)> {
+    match command {
+        SuperUserTuringCommands::InitRepo => {
+            match REPO.create().await {
+                Ok(_) => Ok((DbOps::RepoCreated, None)),
+                Err(error) => Err(error),
+            }
+        },
+        SuperUserTuringCommands::DropRepo => {
+            match REPO.drop_repo().await {
+                Ok(FileOps::DeleteTrue) => Ok(DbOps::RepoDeleted),
+                Err(error) => Err(error),
+            }
+        },
+        SuperUserTuringCommands::ChecksumDatabase(target) => Ok(DbOps::Unspecified),
+        SuperUserTuringCommands::ChecksumTable(target) => Ok(DbOps::Unspecified),
+        SuperUserTuringCommands::CreateDatabase(target) => {
+            let new_db = TuringFeedsDB::new().await
+                .identifier(&target).await;
+            // Insert DB to In-Memory 
+            if let Some(ops) = REPO.get_mut() {
+                match ops.memdb_add(new_db).await {
+                    DbOps::AlreadyExists  => Ok(DbOps::AlreadyExists),
+                    DbOps::DbCreated => {
+                        // Commit to the logs
+                        match REPO.commit().await {
+                            Ok(_) => Ok(DbOps::DbCreated),
+                            Err(error) => Err(error),
+                        }
+                    }
+                    _ => Ok(DbOps::Unspecified),
+                }
+            }else {
+                Ok(DbOps::EncounteredErrors("ONCE_CELL_DB_GLOBAL_STRUCTURE_UNINITIALIZED"))
+            }
+                
+        },
+        SuperUserTuringCommands::FetchDatabases(target) => {
+            let data = REPO.list_memdbs().await;
+
+            if data.is_empty() {
+                Ok((DbOps::RepoEmpty, None))
+            }else {
+                Ok((DbOps::DbList, Some(data)))
+            }
+        },
+        SuperUserTuringCommands::DropDatabase(target) => Ok(DbOps::DbDropped),
+        SuperUserTuringCommands::CreateDocument(target_methods) => Ok(DbOps::DocumentCreated),
+        SuperUserTuringCommands::FetchDocument(target_methods) => Ok(DbOps::DocumentFound),
+        SuperUserTuringCommands::ModifyDocument(target_methods) => Ok(DbOps::DocumentModified),
+        SuperUserTuringCommands::DeleteDocument(target_methods) => Ok(DbOps::DocumentDropped),
+        SuperUserTuringCommands::Unspecified => Ok(DbOps::NotExecuted),
+    }
+}
+
+async fn error_to_client(error: TuringFeedsError) -> DbOps {
+    //make custom errorkinds of all possible errors in one enum instead of comparing then to strings
+    match error {
+        TuringFeedsError::IoError(inner) => DbOps::EncounteredErrors(inner.to_string()),
+        TuringFeedsError::BincodeError(inner) => DbOps::EncounteredErrors(inner.to_string()),
+        TuringFeedsError::RonDeError(inner) => DbOps::EncounteredErrors(inner.to_string()),
+        TuringFeedsError::RonSerError(inner) => DbOps::EncounteredErrors(inner.to_string()),
+        TuringFeedsError::Unspecified => DbOps::Unspecified,
+    }
+}
+/* Future features for account rights
+async fn priviliged_commands(command: PrivilegedTuringCommands) -> DbOps {
+    match command {
+        PrivilegedTuringCommands::CreateDatabase(target) => DbOps::DbCreated,
+        PrivilegedTuringCommands::FetchDatabase(target) => DbOps::DbFound,
+        PrivilegedTuringCommands::ModifyDatabase(target) => DbOps::DbModified,
+        PrivilegedTuringCommands::DropDatabase(target) => DbOps::DbDropped,
+        PrivilegedTuringCommands::Unspecified => DbOps::NotExecuted,
+        ...
+    }
+}
+
+async fn unprivileged_commands(command: UnprivilegedTuringCommands) -> DbOps {
+    match command {
+        UnprivilegedTuringCommands::CreateDocument(target_methods) => DbOps::DocumentCreated,
+        UnprivilegedTuringCommands::FetchDocument(target_methods) => DbOps::DocumentFound,
+        UnprivilegedTuringCommands::ModifyDocument(target_methods) => DbOps::DocumentModified,
+        UnprivilegedTuringCommands::DeleteDocument(target_methods) => DbOps::DocumentDropped,
+        UnprivilegedTuringCommands::Unspecified => DbOps::NotExecuted,
+    }
+}
+*/
+
 async fn errors_printable(error: TuringFeedsError) -> String {
     match error {
         TuringFeedsError::IoError(error) => format!("[STREAM ERROR]: {:?}", error.kind()),
         TuringFeedsError::RonDeError(error) => format!("[STREAM ERROR]: {}", error),
         TuringFeedsError::RonSerError(error) => format!("[STREAM ERROR]: {}", error),
-        TuringFeedsError::WalkDirError(error) => format!("[STREAM ERROR]: {}", error),
         TuringFeedsError::BincodeError(error) => format!("[STREAM ERROR]: {}", error),
         TuringFeedsError::Unspecified => format!("[STREAM ERROR]: {}", "UNSPECIFIED"),
     }
 }
-
-async fn handle_client(mut stream: TcpStream) -> Result<SocketAddr> {
-    println!("Incoming stream from to {}", stream.peer_addr()?);
-    let mut buffer = [0; BUFFER_CAPACITY];
-
-    loop {
-        let bytes_read = stream.read(&mut buffer).await?;
-        if bytes_read == 0 {
-            return Ok(stream.peer_addr()?);
-        }
-        // `0..bytes_read` Get the amount of bytes sent whether the buffer is full or not
-        let to_stream = bincode::deserialize::<TuringCommand>(&buffer[0..bytes_read])?;
-        //stream.write(data_header).await?;
-        let data_out = &bincode::serialize::<TuringCommand>(&to_stream)?;
-        stream.write(data_out).await?;
-    }
-}
-
-
-/*
-async fn handle_client(mut stream: TcpStream) -> Result<SocketAddr> {
-    let mut buffer = [0; 1024];
-    let data_header = b"+----- ECHOOOOO -----+ \n";
-    let data_footer = b"+--------------------+ \n\r";
-
-    loop {
-        let bytes_read = stream.read(&mut buffer).await?; // Get the amount of bytes sent whether the buffer is full or not
-        if bytes_read == 0 {
-            return Ok(stream.peer_addr()?);
-        }
-        //stream.peek(&mut buf).await?;
-        stream.write(data_header).await?;
-        let to_stream = String::from_utf8(buffer[0..bytes_read].to_vec()).unwrap().trim().to_owned() + &foo().await + "\n";
-        stream.write(&to_stream.into_bytes()).await?;
-        //stream.write(&buffer[..foo().await]).await?;
-        //stream.write(&buffer[..bytes_read]).await?;
-        stream.write(data_footer).await?;
-    }
-}
-*/
