@@ -7,6 +7,7 @@ pub enum TuringFeedsError {
     RonSerError(ron::ser::Error),
     RonDeError(ron::de::Error),
     BincodeError(bincode::Error),
+    BufferDataCapacityFull,
     Unspecified,
 }
 
@@ -45,18 +46,24 @@ impl From<bincode::Error> for TuringFeedsError {
         TuringFeedsError::BincodeError(error)
     }
 }
-
 /// A list of all possible errors for easier serializing and deserializing especially when sending down a stream
 /// This were created due to difficulties in add serde features to send down the stream
 /// Might also help where data is being converted into other formats
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum OperationErrors {
     Io(IoErrors),
+    Buffer(BufferErrors),
     Bincode(BincodeErrors),
     Ron(RonErrors),
     Integrity(IntegrityErrors),
     DbOps(custom_codes::DbOps),
     Unspecified,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub enum BufferErrors {
+    CapacityFull,
+    BufferEmpty,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
