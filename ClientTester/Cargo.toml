@@ -10,3 +10,4 @@ edition = "2018"
 async-std = { version = "1.4.0", features = ["attributes"] }
 bincode = "1.2.1"
 turingfeeds-helpers = { path = "../TuringFeedsHelpers" }
+custom_codes = { path = "../../custom_codes" }
