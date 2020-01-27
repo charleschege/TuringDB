@@ -13,6 +13,7 @@ use turingfeeds_helpers::{OpsOutcome, TuringFeedsError, DocumentMethods, RepoCom
 
 const ADDRESS: &str = "127.0.0.1:43434";
 const BUFFER_CAPACITY: usize = 64 * 1024; //16Kb
+const BUFFER_DATA_CAPACITY: usize = 1024 * 1024 * 16; // Db cannot hold data more than 16MB in size
 
 
 use once_cell::sync::OnceCell;
@@ -74,23 +75,31 @@ async fn handle_client(mut stream: TcpStream) -> Result<SocketAddr> {
     let mut buffer = [0; BUFFER_CAPACITY];
     let mut container_buffer: Vec<u8> = Vec::new();
     let mut bytes_read: usize;
-
+    let mut current_buffer_size = 0_usize;
+    
     loop {
+        //check the buffer size is not more that 16MB in size to avoid DoS attack by using huge memory
+        if container_buffer.len() > BUFFER_DATA_CAPACITY {
+            return Err(TuringFeedsError::BufferDataCapacityFull)
+        }
+
         bytes_read = stream.read(&mut buffer).await?;
-        //container_buffer.lock().await.append(&mut buffer[..bytes_read].to_owned());
+
+        current_buffer_size = buffer[..bytes_read].len();
 
         if bytes_read == 0 {
             return Ok(stream.peer_addr()?);
         }
 
         match bincode::deserialize::<TuringTerminator>(&buffer[..bytes_read]) {
-            Ok(_) => {
+            Ok(TuringTerminator) => {
                 // `0..bytes_read` Get the amount of bytes sent whether the buffer is full or not
                 let to_stream = bincode::deserialize::<RepoCommands>(&container_buffer)?;
                 
                 //solve the problem and write to the stream
                 //--let data_out = bincode::serialize::<OpsOutcome>(&repo_commands(to_stream).await)?;
                 //--stream.write(&data_out).await?;
+                //--stream.flush().await?;
                 dbg!("DONE");
             },
             Err(_) => continue, // If an error occurs while deserializing, that means data is still being transmitted
