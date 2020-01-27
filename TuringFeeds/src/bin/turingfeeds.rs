@@ -77,7 +77,6 @@ async fn handle_client(mut stream: TcpStream) -> Result<SocketAddr> {
 
     loop {
         bytes_read = stream.read(&mut buffer).await?;
-        container_buffer.append(&mut buffer[..bytes_read].to_owned());
         //container_buffer.lock().await.append(&mut buffer[..bytes_read].to_owned());
 
         if bytes_read == 0 {
@@ -96,15 +95,9 @@ async fn handle_client(mut stream: TcpStream) -> Result<SocketAddr> {
             },
             Err(_) => continue, // If an error occurs while deserializing, that means data is still being transmitted
         }
-        /*if &buffer[..bytes_read] == "\n".as_bytes() {
-            // `0..bytes_read` Get the amount of bytes sent whether the buffer is full or not
-            let to_stream = bincode::deserialize::<RepoCommands>(&container_buffer)?;
-            
-            //solve the problem and write to the stream
-            let data_out = bincode::serialize::<OpsOutcome>(&repo_commands(to_stream).await)?;
-            stream.write(&data_out).await?;
-            dbg!("DONE");
-        }*/
+
+        // Append data to buffer after deserializing and determining that the current buffer data is not a `TuringTerminator`
+        container_buffer.append(&mut buffer[..bytes_read].to_owned());
     }
 }
  /*
