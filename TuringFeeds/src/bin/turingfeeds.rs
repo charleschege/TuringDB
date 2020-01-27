@@ -75,7 +75,6 @@ async fn handle_client(mut stream: TcpStream) -> Result<SocketAddr> {
     let mut buffer = [0; BUFFER_CAPACITY];
     let mut container_buffer: Vec<u8> = Vec::new();
     let mut bytes_read: usize;
-    let mut current_buffer_size = 0_usize;
     
     loop {
         //check the buffer size is not more that 16MB in size to avoid DoS attack by using huge memory
@@ -84,8 +83,6 @@ async fn handle_client(mut stream: TcpStream) -> Result<SocketAddr> {
         }
 
         bytes_read = stream.read(&mut buffer).await?;
-
-        current_buffer_size = buffer[..bytes_read].len();
 
         if bytes_read == 0 {
             return Ok(stream.peer_addr()?);
