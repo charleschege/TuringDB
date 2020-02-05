@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 pub struct DocumentMethods {
     db: String,
     document: String,
-    data: Vec<u8>,
+    field: String,
+    data: Option<Vec<u8>>,
 }
 
 impl DocumentMethods {
@@ -12,7 +13,8 @@ impl DocumentMethods {
         Self {
             db: String::default(),
             document: String::default(),
-            data: Vec::default(),
+            field: String::default(),
+            data: Option::default(),
         }
     }
     pub async fn add_db(mut self, value: &str) -> Self {
@@ -25,8 +27,13 @@ impl DocumentMethods {
 
         self
     }
+    pub async fn add_field(mut self, value: &str) -> Self {
+        self.field = value.to_owned();
+
+        self
+    }
     pub async fn add_data(mut self, value: Vec<u8>) -> Self {
-        self.data = value;
+        self.data = Some(value);
 
         self
     }
@@ -41,6 +48,9 @@ impl DocumentMethods {
         self.document.to_owned()
     }
     pub async fn get_data(&self) -> Vec<u8> {
-        self.data.to_owned()
+        match &self.data {
+            Some(val) => val.to_vec(),
+            None => Vec::default(),
+        }
     }
 }
