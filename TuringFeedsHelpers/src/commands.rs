@@ -20,6 +20,8 @@ pub enum SuperUserTuringCommands {
     DropDatabase(String),
     /// Create a document
     CreateDocument(DocumentMethods),
+    ///Insert a field into a document
+    InsertField(DocumentMethods),
     /// Read a particular document
     FetchDocument(DocumentMethods),
     /// Updata a document
