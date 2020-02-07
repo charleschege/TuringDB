@@ -6,9 +6,9 @@ use async_std::{
     prelude::*,
     io::ErrorKind,    
 };
-use custom_codes::DbOps;
+use custom_codes::{DbOps, FileOps};
 
-use turingfeeds::{Result, TuringFeeds, TuringFeedsDB, TFDocument};
+use turingfeeds::{Result, FieldMetadata};// TuringFeeds, TuringFeedsDB, TFDocument};
 use turingfeeds_helpers::{OpsOutcome, TuringFeedsError, DocumentMethods, RepoCommands, PrivilegedTuringCommands, UnprivilegedTuringCommands, SuperUserTuringCommands, OperationErrors, IntegrityErrors, TuringTerminator};
 
 const ADDRESS: &str = "127.0.0.1:43434";
@@ -17,7 +17,14 @@ const BUFFER_DATA_CAPACITY: usize = 1024 * 1024 * 16; // Db cannot hold data mor
 
 
 use once_cell::sync::OnceCell;
-static REPO: OnceCell<TuringFeeds> = OnceCell::new();
+/*static REPO: OnceCell<TuringFeeds> = OnceCell::new();
+
+async fn repo_inner_value() -> &'static TuringFeeds {
+    match REPO.get() {
+        Some(value) =>  value,
+        None => { eprintln!("REPO static variable not initialized"); panic!(); }
+    }
+}*/
 
 // TODO 0. Move RwLock to lock a specific database instead of the whole REPO
 // TODO 1. CREATE REPO
@@ -38,12 +45,34 @@ static REPO: OnceCell<TuringFeeds> = OnceCell::new();
 #[async_std::main]
 async fn main() -> Result<()> {
     // Check if database repository exists, if not exit with an error
+    /*match REPO.set(TuringFeeds::new().await.init().await?) {
+        Ok(_) => (),
+        Err(error) => { eprintln!("{:?}", error); panic!(); }
+    }  
+
+    let doc = TFDocument::new().await
+        .data(vec![9]).await;
+    
+    repo_inner_value().await.memdb_doc_create("Data1", "doc1", doc.clone()).await;
+    repo_inner_value().await.memdb_doc_create("Data1", "doc1", doc.clone()).await;
+    repo_inner_value().await.memdb_doc_create("Data1", "doc3", doc.clone()).await;
+    repo_inner_value().await.memdb_doc_create("tttt", "doc3", doc.clone()).await;
+    */
+
+    //dbg!(&REPO);
+    
+
+    Ok(())
+}
+
+/*
+#[async_std::main]
+async fn main() -> Result<()> {
+    // Check if database repository exists, if not exit with an error
     match REPO.set(TuringFeeds::new().await.init().await?) {
         Ok(_) => (),
         Err(error) => { eprintln!("{:?}", error); panic!(); }
-    }
-
-    dbg!(&REPO);   
+    }  
     
     match TcpListener::bind(ADDRESS).await {
         Ok(listener) => {
@@ -68,7 +97,7 @@ async fn main() -> Result<()> {
     }
 
     Ok(())
-}
+}*/
 
 async fn handle_client(mut stream: TcpStream) -> Result<SocketAddr> {
     println!("↓[CONNECTED] device[{}]", stream.peer_addr()?);
@@ -97,7 +126,9 @@ async fn handle_client(mut stream: TcpStream) -> Result<SocketAddr> {
                 //--let data_out = bincode::serialize::<OpsOutcome>(&repo_commands(to_stream).await)?;
                 //--stream.write(&data_out).await?;
                 //--stream.flush().await?;
-                dbg!("DONE");
+                // Send the terminator header to the client
+                //--bincode::serialize::<OpsOutcome>(&TuringTerminator).await?;
+                //--stream.flush().await?;
             },
             Err(_) => continue, // If an error occurs while deserializing, that means data is still being transmitted
         }
@@ -131,60 +162,70 @@ async fn repo_commands(command: RepoCommands) -> OpsOutcome {
 }
 
 */
-
+/*
 async fn superuser_commands(command: SuperUserTuringCommands) -> Result<(DbOps, Option<Vec<u8>>)> {
     match command {
         SuperUserTuringCommands::InitRepo => {
-            match REPO.create().await {
+            match repo_inner_value().await.create().await {
                 Ok(_) => Ok((DbOps::RepoCreated, None)),
                 Err(error) => Err(error),
             }
         },
         SuperUserTuringCommands::DropRepo => {
-            match REPO.drop_repo().await {
-                Ok(FileOps::DeleteTrue) => Ok(DbOps::RepoDeleted),
+            match repo_inner_value().await.drop_repo().await {
+                Ok(FileOps::DeleteTrue) => Ok((DbOps::RepoDeleted, None)),
                 Err(error) => Err(error),
             }
         },
-        SuperUserTuringCommands::ChecksumDatabase(target) => Ok(DbOps::Unspecified),
-        SuperUserTuringCommands::ChecksumTable(target) => Ok(DbOps::Unspecified),
+        SuperUserTuringCommands::ChecksumDatabase(target) => Ok((DbOps::Unspecified, None)),
+        SuperUserTuringCommands::ChecksumTable(target) => Ok((DbOps::Unspecified, None)),
         SuperUserTuringCommands::CreateDatabase(target) => {
             let new_db = TuringFeedsDB::new().await
                 .identifier(&target).await;
             // Insert DB to In-Memory 
-            if let Some(ops) = REPO.get_mut() {
-                match ops.memdb_add(new_db).await {
-                    DbOps::AlreadyExists  => Ok(DbOps::AlreadyExists),
-                    DbOps::DbCreated => {
-                        // Commit to the logs
-                        match REPO.commit().await {
-                            Ok(_) => Ok(DbOps::DbCreated),
-                            Err(error) => Err(error),
-                        }
+            match repo_inner_value().await.memdb_add(new_db).await {
+                Ok((DbOps::AlreadyExists, _))  => Ok((DbOps::AlreadyExists, None)),
+                Ok((DbOps::DbCreated, _)) => {
+                    // Commit to the logs
+                    match repo_inner_value().await.commit().await {
+                        Ok(_) => Ok((DbOps::DbCreated, None)),
+                        Err(error) => Err(error),
                     }
-                    _ => Ok(DbOps::Unspecified),
                 }
-            }else {
-                Ok(DbOps::EncounteredErrors("ONCE_CELL_DB_GLOBAL_STRUCTURE_UNINITIALIZED"))
+                _ => Ok((DbOps::Unspecified, None)),
             }
-                
+                //Ok(DbOps::EncounteredErrors("ONCE_CELL_DB_GLOBAL_STRUCTURE_UNINITIALIZED"))                
         },
         SuperUserTuringCommands::FetchDatabases(target) => {
-            let data = REPO.list_memdbs().await;
+            let data = repo_inner_value().await.list_memdbs().await;
 
             if data.is_empty() {
                 Ok((DbOps::RepoEmpty, None))
             }else {
-                Ok((DbOps::DbList, Some(data)))
+                Ok((DbOps::DbList, Some(vec_string_to_u8(data).await)))
             }
         },
-        SuperUserTuringCommands::DropDatabase(target) => Ok(DbOps::DbDropped),
+        SuperUserTuringCommands::DropDatabase(target) => Ok((repo_inner_value().await.memdb_rm(&target).await?, None)),
         SuperUserTuringCommands::CreateDocument(target_methods) => Ok(DbOps::DocumentCreated),
+        SuperUserTuringCommands::InsertField(target_methods) => Ok(DbOps::DocumentInserted),
         SuperUserTuringCommands::FetchDocument(target_methods) => Ok(DbOps::DocumentFound),
         SuperUserTuringCommands::ModifyDocument(target_methods) => Ok(DbOps::DocumentModified),
         SuperUserTuringCommands::DeleteDocument(target_methods) => Ok(DbOps::DocumentDropped),
-        SuperUserTuringCommands::Unspecified => Ok(DbOps::NotExecuted),
+        SuperUserTuringCommands::Unspecified => Ok((DbOps::NotExecuted, None)),
     }
+}
+*/
+async fn vec_string_to_u8(values: Vec<String>) -> Vec<u8> {
+    let mut converted: Vec<u8> = Vec::new();
+
+    for (index, value) in values.iter().enumerate() {
+        converted.extend_from_slice(value.as_bytes());
+        // Remove value to prevent too much memory usage from maintaining two vectors
+        // values is now owned and should go out of scope
+        //values.remove(index);
+    }
+
+    converted
 }
 
 async fn error_to_client(error: TuringFeedsError) -> DbOps {
@@ -195,6 +236,8 @@ async fn error_to_client(error: TuringFeedsError) -> DbOps {
         TuringFeedsError::RonDeError(inner) => DbOps::EncounteredErrors(inner.to_string()),
         TuringFeedsError::RonSerError(inner) => DbOps::EncounteredErrors(inner.to_string()),
         TuringFeedsError::Unspecified => DbOps::Unspecified,
+        TuringFeedsError::BufferDataCapacityFull => DbOps::EncounteredErrors("BUFFER_CAPACITY_FULL".into()),
+        TuringFeedsError::OsString(inner) => DbOps::EncounteredErrors(format!("{:?}", inner)),
     }
 }
 /* Future features for account rights
@@ -219,13 +262,3 @@ async fn unprivileged_commands(command: UnprivilegedTuringCommands) -> DbOps {
     }
 }
 */
-
-async fn errors_printable(error: TuringFeedsError) -> String {
-    match error {
-        TuringFeedsError::IoError(error) => format!("[STREAM ERROR]: {:?}", error.kind()),
-        TuringFeedsError::RonDeError(error) => format!("[STREAM ERROR]: {}", error),
-        TuringFeedsError::RonSerError(error) => format!("[STREAM ERROR]: {}", error),
-        TuringFeedsError::BincodeError(error) => format!("[STREAM ERROR]: {}", error),
-        TuringFeedsError::Unspecified => format!("[STREAM ERROR]: {}", "UNSPECIFIED"),
-    }
-}
