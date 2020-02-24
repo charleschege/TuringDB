@@ -16,4 +16,4 @@ name = "turingfeeds"
 path = "TuringFeeds/src/bin/turingfeeds.rs"
 
 [dependencies]
-async-std = { version = "1.4.0", features = ["attributes"] }
+async-std = { version = "1.5.0", features = ["attributes"] }
