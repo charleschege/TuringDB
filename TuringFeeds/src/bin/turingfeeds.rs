@@ -4,11 +4,12 @@ use async_std::{
     net::{TcpListener, TcpStream, SocketAddr},
     task,
     prelude::*,
-    io::ErrorKind,    
+    io::ErrorKind,
+    sync::{Arc, Mutex},
 };
 use custom_codes::{DbOps, FileOps};
 
-use turingfeeds::{Result, FieldMetadata};// TuringFeeds, TuringFeedsDB, TFDocument};
+use turingfeeds::{Result, FieldMetadata, Fields, Tdb, TuringFeeds, Documents};
 use turingfeeds_helpers::{OpsOutcome, TuringFeedsError, DocumentMethods, RepoCommands, PrivilegedTuringCommands, UnprivilegedTuringCommands, SuperUserTuringCommands, OperationErrors, IntegrityErrors, TuringTerminator};
 
 const ADDRESS: &str = "127.0.0.1:43434";
@@ -16,15 +17,9 @@ const BUFFER_CAPACITY: usize = 64 * 1024; //16Kb
 const BUFFER_DATA_CAPACITY: usize = 1024 * 1024 * 16; // Db cannot hold data more than 16MB in size
 
 
-use once_cell::sync::OnceCell;
-/*static REPO: OnceCell<TuringFeeds> = OnceCell::new();
+// Just create normal hashmaps and then take 
+// (Arc<Mutex<ReadHandle<&'static str, Box<TuringFeeds>>>>, Arc<Mutex<WriteHandle<&'static str, Box<TuringFeeds>>>>) = evmap::new()
 
-async fn repo_inner_value() -> &'static TuringFeeds {
-    match REPO.get() {
-        Some(value) =>  value,
-        None => { eprintln!("REPO static variable not initialized"); panic!(); }
-    }
-}*/
 
 // TODO 0. Move RwLock to lock a specific database instead of the whole REPO
 // TODO 1. CREATE REPO
@@ -60,6 +55,58 @@ async fn main() -> Result<()> {
     */
 
     //dbg!(&REPO);
+    let mut fields1 = FieldMetadata::new().await;
+
+    fields1.update_modified_time().await;
+
+    let fields2 = FieldMetadata::new().await;
+    let mut foo2 = Fields::new().await;
+    foo2.insert("field_swap", fields2).await;
+
+    let mut foo = Fields::new().await;
+    
+    let mut tf = TuringFeeds::new().await;
+    //tf.create().await?;
+    let mut documents = Documents::new().await;
+    documents.insert("doc3", foo).await;
+    let mut db = Tdb::memdb_new().await;
+    db.db_create("db3").await?;
+    db.memdb_insert("db3", documents).await;
+    db.db_commit("db3").await?;
+    tf.init().await;
+
+    dbg!(tf);
+
+
+
+    //foo.insert_field("foo_field1", fields1).await;
+    //foo.insert_field("foo_field2", fields2).await;
+
+
+    //dbg!(&foo.update_field("foo_field1").await);
+
+    /*match TcpListener::bind(ADDRESS).await {
+        Ok(listener) => {
+            println!("Listening on Address: {}", listener.local_addr()?);
+            while let Some(stream) = listener.incoming().next().await {
+                let stream = stream?;
+                task::spawn(async {
+                    match handle_client(stream).await {
+                        Ok(addr) => {
+                            println!("[TERMINATED] ip({}) port({})", addr.ip(), addr.port())
+                        },
+                        Err(error) => {
+                            //--eprintln!("{:?}", errors_printable(error).await);
+                        },
+                    }
+                });
+            }
+        },
+        Err(error) => {
+            panic!(error);
+        }
+    }*/
+
     
 
     Ok(())
