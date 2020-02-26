@@ -47,6 +47,9 @@ impl DocumentMethods {
     pub async fn get_document(&self) -> String {
         self.document.to_owned()
     }
+    pub async fn get_field(&self) -> String {
+        self.field.to_owned()
+    }
     pub async fn get_data(&self) -> Vec<u8> {
         match &self.data {
             Some(val) => val.to_vec(),
