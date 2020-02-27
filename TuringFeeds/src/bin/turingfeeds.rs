@@ -9,7 +9,7 @@ use async_std::{
 };
 use custom_codes::{DbOps, FileOps};
 
-use turingfeeds::{Result, FieldMetadata, Fields, Tdb, TuringFeeds, Documents};
+use turingfeeds::{Result, TuringFeeds};
 use turingfeeds_helpers::{OpsOutcome, TuringFeedsError, DocumentMethods, RepoCommands, PrivilegedTuringCommands, UnprivilegedTuringCommands, SuperUserTuringCommands, OperationErrors, IntegrityErrors, TuringTerminator};
 
 const ADDRESS: &str = "127.0.0.1:43434";
@@ -55,7 +55,7 @@ async fn main() -> Result<()> {
     */
 
     //dbg!(&REPO);
-    let mut fields1 = FieldMetadata::new().await;
+    /*let mut fields1 = FieldMetadata::new().await;
 
     fields1.update_modified_time().await;
 
@@ -69,13 +69,16 @@ async fn main() -> Result<()> {
     //tf.create().await?;
     let mut documents = Documents::new().await;
     documents.insert("doc3", foo).await;
-    let mut db = Tdb::memdb_new().await;
-    db.db_create("db3").await?;
-    db.memdb_insert("db3", documents).await;
-    db.db_commit("db3").await?;
-    tf.init().await;
-
-    dbg!(tf);
+    let mut db = Tdb::memdb_new().await;*/
+    //db.db_create("db3").await?;
+    //tf.init().await;
+    let mut tf = TuringFeeds::new().await;
+    tf.repo_init().await;
+    dbg!(&tf.db_create("db1").await?);
+    dbg!(&tf.document_create("db0", "doc7_db0").await?); // Database document sled is being overwritten
+    dbg!(&tf.db_read("db0").await);
+    //dbg!(&tf.db_list().await);
+    //tf.db_insert();
 
 
 

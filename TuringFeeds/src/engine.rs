@@ -18,7 +18,7 @@ use std::{
 use tai64::TAI64N;
 use lazy_static::*;
 use sled::{TransactionResult, Config, IVec};
-use turingfeeds_helpers::TuringFeedsError;
+use turingfeeds_helpers::{TuringFeedsError, DocumentMethods};
 
 use crate::{AccessRights, RandIdentifier, Result, Role};
 use lazy_static::*;
@@ -39,13 +39,14 @@ lazy_static!{
     static ref WRITER: Arc<Mutex<WriteHandle<&'static str, Box<Bar>>>> = DB.1.clone();
 }
 */
-type EvmapReader = Arc<Mutex<ReadHandle<String, Box<Tdb>>>>;
+type EvmapReader = ReadHandle<String, Box<Tdb>>;
 type EvmapWriter = Arc<Mutex<WriteHandle<String, Box<Tdb>>>>;
-type DatabaseID = String;
+
 /// Handle list of databases
 #[derive(Debug)]
 pub struct TuringFeeds {
-    reader: Arc<Mutex<ReadHandle<String, Box<Tdb>>>>,
+    //reader: Arc<Mutex<ReadHandle<String, Box<Tdb>>>>,
+    reader: ReadHandle<String, Box<Tdb>>,
     writer: Arc<Mutex<WriteHandle<String, Box<Tdb>>>>,
     //hash: RepoBlake2hash,
     //secrecy: TuringSecrecy,
@@ -62,27 +63,20 @@ impl TuringFeeds {
         let dbs: (ReadHandle<String, Box<Tdb>>, WriteHandle<String, Box<Tdb>>) = evmap::new();
 
         Self {
-            reader: Arc::new(Mutex::new(dbs.0)),
+            reader: dbs.0,
             writer: Arc::new(Mutex::new(dbs.1)),
         }
-    } 
-    /// Initialize the structure with default values
-    pub async fn swap(mut self, reader: EvmapReader, writer: EvmapWriter) -> Self {
-        self.reader = reader;
-        self.writer = writer;
-
-        self
-    }      
+    }     
     /// Check whether the list are empty or not
     pub async fn repo_is_empty(&self) -> bool {
         
-        self.reader.lock().await.is_empty()
+        self.reader.is_empty()
     }
     /// Recursively walk through the Directory
     /// Load all the Directories into memory
     /// Hash and Compare with Persisted Hash to check for corruption
     /// Throw errors if any otherwise    
-    pub async fn init(&mut self) -> &Self{
+    pub async fn repo_init(&mut self) -> &Self{
         let mut repo_path = PathBuf::new();
         repo_path.push("TuringFeedsRepo");
         repo_path.push("REPO");
@@ -97,20 +91,20 @@ impl TuringFeeds {
                                 Ok(inner) => {
                                     if inner.is_dir() == true {
                                         //println!("{}", entry.path().to_string_lossy());
-                                        self.insert_tdb(entry.path()).await;
+                                        self.load_tdb(entry.path()).await;
                                     }else {
-                                        println!("[Tdb::<WARNING - FOUND A FILE `{}` INSTEAD OF A DIRECTORY>]", entry.file_name().to_string_lossy());
-                                        std::process::exit(1);
+                                        // Customize this to detect `error.log` and `ops.log` file
+                                        println!("[TAI64N::<{:?}>] - [Tdb::<WARNING - FOUND A FILE `{}`>]", TAI64N::now(), entry.file_name().to_string_lossy());
                                     }
                                 },
                                 Err(error) => {
-                                    eprintln!("[Tdb::<ERROR READING `async_std::fs::FileType`>]\n     {}", error);
+                                    eprintln!("[TAI64N::<{:?}>] - [Tdb::<ERROR READING `async_std::fs::FileType`>] - [ErrorKind - {:?}]", TAI64N::now(), error.kind());
                                     std::process::exit(1);
                                 },
                             }
                         },
                         Err(error) => {
-                            eprintln!("[Tdb::<ERROR GETTING `async_std::fs::DirEntry`>]\n     {}", error);
+                            eprintln!("[TAI64N::<{:?}>] - [Tdb::<ERROR GETTING `async_std::fs::DirEntry`>] - [ErrorKind - {:?}]", TAI64N::now(), error.kind());
                             std::process::exit(1);
                         },
                     }                 
@@ -119,12 +113,12 @@ impl TuringFeeds {
                 self
             },
             Err(error) => {
-                eprintln!("[Tdb::<ERROR READING `TuringFeedsRepo` DIRECTORY>]\n     {}", error);
+                eprintln!("[TAI64N::<{:?}>] - [Tdb::<ERROR READING `TuringFeedsRepo` DIRECTORY>] - [ErrorKind - {:?}]", TAI64N::now(), error.kind());
                 std::process::exit(1);
             },
         }    
     }
-    async fn insert_tdb(&self, db_path: PathBuf) -> &Self{        
+    async fn load_tdb(&self, db_path: PathBuf) -> &Self{        
         let mut contents = String::new();
         if let Some(file_name) = db_path.file_name() {
             let mut metadata = db_path.clone();
@@ -139,291 +133,238 @@ impl TuringFeeds {
                 .await 
                 {
                     Ok(mut file) => {
-                        println!("[Tdb::<OPENING REPO METADATA FILE SUCCESSFUL>]");
+                        println!("[TAI64N::<{:?}>] - [Tdb::<OPENING REPO METADATA FILE SUCCESSFUL>]", TAI64N::now());
                         match file.read_to_string(&mut contents).await {
                             Ok(_) => {
-                                println!("[Tdb::<READING REPO METADATA FILE COMPLETE>]");
+                                println!("[TAI64N::<{:?}>] - [Tdb::<READING REPO METADATA FILE COMPLETE>]", TAI64N::now());
                                 match ron::de::from_str::<Tdb>(&contents) {
                                     Ok(data) => {
-                                        println!("[Tdb::<INITIALIZATION SUCCESSFUL>]");
+                                        println!("[TAI64N::<{:?}>] - [Tdb::<INITIALIZATION SUCCESSFUL>]", TAI64N::now());
                                         self.writer.lock().await.insert(file_name.clone().to_string_lossy().into(), Box::new(data));
+                                        self.writer.lock().await.refresh();
 
                                         self
                                     },
                                     Err(error) => {
-                                        eprintln!("[Tdb::<RON/SERDE DESERIALIZATION ERROR>]\n     {}", error);
+                                        eprintln!("[TAI64N::<{:?}>] - [Tdb::<RON/SERDE DESERIALIZATION ERROR>] - [SerdeError - {:?}]", TAI64N::now(), error);
                                         std::process::exit(1);
                                     }
                                 }
                             },
                             Err(error) => {
-                                eprintln!("[Tdb::<ERROR READING REPO METADATA>]\n     {}", error);
+                                eprintln!("[TAI64N::<{:?}>] - [Tdb::<ERROR READING REPO METADATA>] - [ErrorKind - {:?}]", TAI64N::now(), error.kind());
                                 std::process::exit(1);
                             }
                         }
                     },
                     Err(error) => {
-                        eprintln!("[Tdb::<ERROR OPENING FILE>]\n     {:#?}", error.kind());
-                        std::process::exit(1);
+                        eprintln!("[TAI64N::<{:?}>] - [Tdb::<ERROR OPENING `{:?}`>] - [ErrorKind - {:?}]", TAI64N::now(), file_name, error.kind());
+                        self
                     }
                 }
         }else {
-            eprintln!("[Tdb::<ERROR GETTING DB NAME>]\n     `{:#?}`", db_path);
+            eprintln!("[Tdb::<ERROR GETTING DB NAME `{:#?}`>]", db_path);
             std::process::exit(1);
         }
     }
-    /*/// Create a new repository/directory that contains the databases
-    pub async fn create(&self) -> Result<FileOps> {
+    /// Create a new repository/directory that contains the databases
+    pub async fn repo_create(&self) -> Result<FileOps> {
         let mut repo_path = PathBuf::new();
         repo_path.push("TuringFeedsRepo");
 
         match DirBuilder::new().recursive(false).create(repo_path).await {
-            Ok(_) => Ok(FileOps::CreateTrue),
-            Err(error) => Err(turingfeeds_helpers::TuringFeedsError::IoError(error)),
+            Ok(_) => {
+                self.create_ops_log_file().await?;
+                self.create_errors_log_file().await?;
+                Ok(FileOps::CreateTrue)
+            },
+            Err(error) => Err(TuringFeedsError::IoError(error)),
         }
     }
     /// Create a new repository/directory that contains the databases
-    pub async fn drop_repo(&self) -> Result<FileOps> {
+    async fn create_ops_log_file(&self) -> Result<FileOps> {
+        let mut log_file_path = PathBuf::new();
+        log_file_path.push("TuringFeedsRepo");
+        log_file_path.push("ops.log");
+
+        match OpenOptions::new()
+            .create(true)
+            .write(true)
+            .open(log_file_path)
+            .await {
+                Ok(_) => Ok(FileOps::CreateTrue),
+                Err(error) => Err(TuringFeedsError::IoError(error)),
+            }
+    }
+    /// Create a new repository/directory that contains the databases
+    async fn create_errors_log_file(&self) -> Result<FileOps> {
+        let mut log_file_path = PathBuf::new();
+        log_file_path.push("TuringFeedsRepo");
+        log_file_path.push("errors.log");
+
+        match OpenOptions::new()
+            .create(true)
+            .write(true)
+            .open(log_file_path)
+            .await {
+                Ok(_) => Ok(FileOps::CreateTrue),
+                Err(error) => Err(TuringFeedsError::IoError(error)),
+            }
+    }
+    /// Create a new repository/directory that contains the databases
+    pub async fn repo_drop(&self) -> Result<FileOps> {
+        // TODO - list all the databases and their fields that are being dropped and log to `ops.log` file
         let mut repo_path = PathBuf::new();
         repo_path.push("TuringFeedsRepo");
 
-        match fs::remove_dir(repo_path).await {
+        match fs::remove_dir_all(repo_path).await {
             Ok(_) => Ok(FileOps::DeleteTrue),
             Err(error) => Err(TuringFeedsError::IoError(error)),
         }
     }
-    /// Create the Metadata file or add data to the metadata file
-    pub async fn commit(&self) -> Result<FileOps> {
-        let mut repo_path = PathBuf::new();
-        repo_path.push("TuringFeedsRepo");
-        repo_path.push("REPO");
-        repo_path.set_extension("log");
+    // TODO DB - CRUDL
+    // TODO DOCUMENT - CRUDL
+    // TODO FIELD - CRUDL
 
-        match OpenOptions::new()
-            .create(true)
-            .read(false)
-            .write(true)
-            .open(repo_path)
-            .await
-        {
-            Ok(mut file) => {
-                let data = ron::ser::to_string(&self.dbs)?;
-                file.write_all(&data.as_bytes().to_owned()).await?;
-                file.sync_all().await?;
+    // DONE! CREATE
+    // TODO GET DATABASE FIELDS --- CHECK
+    // DONE! LIST DATABASES
+    // DONE! DELETE
 
-                Ok(FileOps::WriteTrue)
-            }
-            Err(error) => Err(TuringFeedsError::IoError(error)),
-        }
-    }
     /// Add a Database
-    pub async fn memdb_add(&self, values: TuringFeedsDB) -> Result<(DbOps, Option<&Self>)> {
-        if self.dbs.contains_key(&values.identifier) == true {
-            Ok((DbOps::AlreadyExists, None))
+    pub async fn db_create(&self, db_name: &str) -> Result<DbOps> {
+        if self.reader.contains_key(db_name) == true {
+            Ok(DbOps::DbAlreadyExists)
         }else {
-            match self.create_disk_db(&values.identifier).await {
-                Ok(_) => {
-                    self.dbs.insert(values.identifier.clone(), values);
-
-                    Ok((DbOps::DbCreated, Some(self)))
-                },
-                Err(error) => Err(error),
-            }
+            let values = Tdb::new().await;
+            values.create_on_disk(db_name).await?;
+            
+            self.writer.lock().await.insert(db_name.into(), Box::new(values.get_self().await));
+            self.writer.lock().await.refresh();
+            Ok(DbOps::DbCreated)
         }
-    }
-    /// List all databases on disk in the current repository
-    pub async fn list_memdbs(&self) -> Vec<String> {
-        let dbs = &self.dbs;        
-        let mut list = Vec::new();
-
-        for inner_data in dbs.iter() {
-            list.push(inner_data.key().to_owned());
-        }
-
-        list
     }
     /// Remove a Database if it exists
-    pub async fn memdb_rm(&self, db_name: &str) -> Result<DbOps> {
-        if self.dbs.contains_key(db_name) == true {
-            Ok(DbOps::AlreadyExists)
+    pub async fn db_drop(&self, db_name: &str) -> Result<DbOps> {
+        if let Some(db) = self.db_get(db_name).await {
+            let mut values = Tdb::new().await;
+            values.swap(&db).await;
+            values.disk_db_drop(db_name).await?;
+            self.writer.lock().await.empty(db_name.into());
+            self.writer.lock().await.refresh();
+            Ok(DbOps::DbDropped)
         }else {
-            match self.rm_disk_db(db_name).await {
-                Ok(_) => {                    
-                    if let Some(_) = self.dbs.remove(db_name) {
-                        Ok(DbOps::DbDropped)
-                    }else {
-                        Ok(DbOps::DbNotFound)
-                    }
-                },
-                Err(error) => Err(error),
+            Ok(DbOps::DbNotFound)
+        }
+    }
+    /// Get the documents of a database
+    pub async fn db_read(&self, db_name: &str) -> DbOps {
+        if let Some(db) = self.db_get(db_name).await {
+            let mut data: Vec<String> = Vec::new();
+
+            for key in db.list.keys() {
+                data.push(key.into());
             }
+            if data.is_empty() == true {
+                DbOps::DbEmpty
+            }else {
+                DbOps::DocumentList(data)
+            }
+        }else {
+            DbOps::DbNotFound
         }
     }
-    /// Create a database directory on disk to house tables
-    async fn create_disk_db(&self, db_name: &str) -> Result<()> {
-        let mut db_path = PathBuf::new();
-        db_path.push("TuringFeedsRepo");
-        db_path.push(db_name);
-
-        Ok(DirBuilder::new()
-            .recursive(false)
-            .create(db_path)
-            .await?)
-    }
-    /// Remove a database from disk
-    async fn rm_disk_db(&self, db_name: &str) -> Result<()> {
-        let mut db_path = PathBuf::new();
-        db_path.push("TuringFeedsRepo");
-        db_path.push(db_name);
-
-        Ok(fs::remove_dir(db_path).await?)
-    }
-    /// List all databases on disk in the current repository
-    pub async fn list_dbs_on_disk(&self) -> Result<Vec<String>> {
-        let mut repo_path = PathBuf::new();
-        repo_path.push("TuringFeedsRepo");
-
-        let mut dbs = fs::read_dir(repo_path).await?;
-        let mut list = Vec::new();
-        while let Some(entry) = dbs.next().await {
-            let entry = entry?;
-            list.push(entry.file_name().to_os_string().into_string()?)
+    /// Get list of databases
+    pub async fn db_list(&self) -> DbOps {
+        let mut db_list: Vec<String> = Vec::new();
+        for (key, _) in &self.reader.read() {
+            db_list.push(key.into());
         }
 
-        Ok(list)
+        if db_list.is_empty() == true {
+            DbOps::RepoEmpty
+        }else {
+            DbOps::DbList(db_list)
+        }
     }
-    /// Deal with Document
-    ///
-    /// Create an in-memory document
-    pub async fn memdb_doc_create(&self, db: &str, doc_identifier: &str, doc_data: TFDocument) {
-        match self.dbs.get_mut(db) {
-            Some(mut memdb) => {
-                println!("AT SELECT DB");
-                
-                if let Some(doc_list) = &memdb.document_list {
-                    if doc_list.contains_key(doc_identifier) == true {
-                        dbg!(DbOps::DocumentFound);
-                    }else {
-                        doc_list.insert(doc_identifier.to_owned(), doc_data);
-                        println!("WHEN DOCS IS SOME--------");
-                        dbg!(&*memdb);
-                    }
+    /// Get a Database if it exists. This function is not public and is used by methods in this `impl TuringFeeds` block
+    /// to get the documents in a given database
+    async fn db_get(&self, db_name: &str) -> Option<Tdb> {
+        match self.reader.get(db_name) {
+            Some(value) => { 
+                if let Some(value) = value.iter().next().clone() {
+                    Some(*value.clone())
                 }else {
-                    memdb.document_list = {
-                        let data: DashMap<String, TFDocument> = DashMap::new();
-                        data.insert(doc_identifier.to_owned(), doc_data);
-
-                        Some(data)
-                    };
-                    println!("WHEN DOCS IS NONE--------");
-                    dbg!(&*memdb);
+                    None
                 }
-                println!("------\n");
-            },
-            None => { dbg!(DbOps::DbNotFound); }
+             },
+            None => { None }
         }
     }
+    // ******DOCUMENTS************
+    /// TODO CREATE DOCUMENT & UPDATE LOG
+    /// TODO READ A DOCUMENT
+    /// TODO LIST ALL DOCUMENTs
+    /// TODO UPDATE A DOCUMENT & UPDATE LOG
+    /// TODO DELETE A DOCUMENT & UPDATE LOG
     
-    /// Create an empty document
-    pub async fn create_doc(&self, db: &str, doc: &TFDocument) -> Result<DbOps>{
-        // Get db name
-        // check if doc already exists in inmemory database
-        // add or reject
+    /// Update a field 
+    pub async fn document_create(&mut self, db_name: &str, doc_name: &str) -> Result<DbOps> {
+        let mut doc_path = PathBuf::new();
+        doc_path.push("TuringFeedsRepo");
+        doc_path.push(db_name);
+        doc_path.push(doc_name);
 
-        let mut document_path = PathBuf::new();
-        document_path.push("TuringFeedsRepo");
-        document_path.push(db);
-        document_path.push(&doc.identifier);
-        
-        match self.dbs.get(db) {
-            Some(value) => {      
-                // Check whether DB is empty          
-                if let Some(document) = &value.document_list {
-                    //if db is not empty check whether the field exists
-                    if document.contains_key(&doc.identifier) == true {
-                        Ok(DbOps::AlreadyExists)
-                    }else {
-                        match sled::Config::default()
-                            .create_new(true)
-                            .path(document_path)
-                            .open() {
-                                Err(sled::Error::CollectionNotFound(_)) => Ok(DbOps::DocumentNotFound),
-                                Err(sled::Error::Io(inner)) => {
-                                    match inner {
-                                        match inner.kind() with the TuringHelpers crate
-                                    }
-                                }
-                                Err(sled_error) => Err(sled_errors(sled_error).await),
-                                Ok(_) => {
-                                    self.dbs.get_mut(db).insert()
-                                    Ok(DbOps::DocumentCreated)
-                                },
-                            }
+        if let Some(mut db) = self.db_get(&db_name).await {
+            if db.list.contains_key(doc_name) == true {
+                Ok(DbOps::DocumentAlreadyExists)
+            }else {
+                dbg!(&doc_path);
+                match sled::Config::default()
+                    .create_new(false)
+                    .path(doc_path)
+                    .open() {
+                        Ok(_) => {
+                            db.insert(doc_name.into(), Documents::new().await).await?;
+                            db.commit(db_name).await?;
+                            self.writer.lock().await.update(db_name.into(), Box::new(db));
+                            self.writer.lock().await.refresh();
+
+                            Ok(DbOps::DocumentCreated)
+                        },
+                        Err(error) => Err(sled_errors(error).await),
                     }
-                }else {
-                    // If the DB is empty insert a new document
-                    match sled::Config::default()
-                        .create_new(true)
-                        .path(document_path)
-                        .open() {
-                            Err(sled::Error::CollectionNotFound(_)) => Ok(DbOps::DocumentNotFound),
-                            Err(sled_error) => Err(sled_errors(sled_error).await),
-                            Ok(_) => Ok(DbOps::DocumentCreated),
-                        }
-                }
-            },
-            None => Ok(DbOps::DbNotFound),
-        }
-    }
-    
-
-    pub async fn create_disk_field(path: &Path, key: &[u8], value: &[u8]) -> TransactionResult<DbOps, TuringFeedsError>{
-        let db = Config::default()
-            .create_new(true)
-            .path(path)
-            .open()?;
-
-        if db.contains_key(key)? != true {
-
-            db.transaction(|db| {
-                db.insert(key, value)?;
-                Ok(())
-            })?;
-
-            Ok(DbOps::FieldCreated)        
+            }
         }else {
-            Ok(DbOps::FieldFound)
+            Ok(DbOps::DbNotFound)
         }
     }
+}
 
-    pub async fn read_disk_field(path: &Path, key: &[u8]) -> TransactionResult<Option<IVec>> {
+#[derive(Debug)]
+struct LogFile {
+    error: TuringFeedsError,
+    timestamp: TAI64N,
+}
 
-        if let Some(data) = sled::open(path)?.get(key)? {
-            Ok(Some(data))
-        }else {
-            Ok(None)
-        }
+impl LogFile {
+    ///Write to logger file
+    async fn log_error_to_file(&self, error: TuringFeedsError) -> Result<()> {
+        let mut log_file_path = PathBuf::new();
+        log_file_path.push("TuringFeedsRepo");
+        log_file_path.push("errors.log");
+
+        let mut file = OpenOptions::new()
+            .create(false)
+            .read(false)
+            .append(true)
+            .open(log_file_path)
+            .await?;
+        let error_customized = format!("[TAI64N - {:?}] <-> {:?}", TAI64N::now(), error);
+
+        file.write_all(&error_customized.into_bytes()).await?;
+        Ok(file.sync_all().await?)
     }
-
-    pub async fn update_disk_field(path: &Path, key: &[u8], value: &[u8]) -> TransactionResult<DbOps, TuringFeedsError>{
-        let db = Config::default()
-            .create_new(true)
-            .path(path)
-            .open()?;
-
-        if db.contains_key(key)? == true {
-
-            db.transaction(|db| {
-                db.insert(key, value)?;
-                Ok(())
-            })?;
-
-            Ok(DbOps::FieldCreated)        
-        }else {
-            Ok(DbOps::FieldNotFound)
-        }
-    }
-    */
 }
 
 async fn sled_errors(error: sled::Error) -> TuringFeedsError {
@@ -433,14 +374,14 @@ async fn sled_errors(error: sled::Error) -> TuringFeedsError {
         SledError::CollectionNotFound(_) => TuringFeedsError::IoError(Error::new(ErrorKind::Other, "SledError::CollectionNotFound")),
         SledError::Unsupported(value) => TuringFeedsError::IoError(Error::new(ErrorKind::Other, "SledError::".to_owned() + value.as_str())),
         SledError::ReportableBug(value) => TuringFeedsError::IoError(Error::new(ErrorKind::Other, "SledError::".to_owned() + value.as_str())),
-        SledError::Io(value) => TuringFeedsError::IoError(Error::new(ErrorKind::Other, value)),
+        SledError::Io(value) => TuringFeedsError::IoError(value),
         SledError::Corruption{at} => TuringFeedsError::IoError(Error::new(ErrorKind::Other, format!("SledError::{:?}", at))),
     }
 }
 type DocumentsID = String;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
-pub struct Tdb {
+struct Tdb {
     datetime: TAI64N,
     list: HashMap<DocumentsID, Documents>,
     //rights: Option<HashMap<UserIdentifier, (Role, AccessRights)>>,
@@ -465,81 +406,47 @@ impl Hash for Tdb {
 }
 
 impl Tdb {
-    pub async fn memdb_new() -> Self {
+    async fn new() -> Self {
         Self {
             datetime: TAI64N::now(),
             list: HashMap::new(),
         }
-    }    
+    }  
+    async fn get_self(self) -> Self {
+        self
+    }   
     /// Check whether the list are empty or not
-    pub async fn memdb_is_empty(&self) -> bool {
+    async fn is_empty(&self) -> bool {
         
         self.list.is_empty()
     }
 
-    pub async fn memdb_insert(&mut self, identifier: &str, values: Documents) -> DbOps {
+    async fn insert(&mut self, identifier: &str, values: Documents) -> Result<DbOps> {
+
         if self.list.contains_key(identifier) == true {
-            DbOps::DbAlreadyExists
-        }else {
+            Ok(DbOps::DocumentAlreadyExists)
+        }else {            
             self.list.insert(identifier.into(), values);
-
-            DbOps::DbCreated
+            Ok(DbOps::DocumentCreated)
         }
     }
 
-    pub async fn memdb_get(&self, identifier: &str) -> Option<&Documents> {
-        self.list.get(identifier)
-    }
-
-    pub async fn memdb_update(&mut self, identifier: &str, values: Documents) -> DbOps {
-        if self.list.contains_key(identifier) == true {
-            self.list.insert(identifier.into(), values);
-
-            DbOps::DbModified
-        }else {
-            DbOps::DbNotFound
-        }
-    }
-
-    pub async fn memdb_remove(&mut self, identifier: &str) -> DbOps {
-        if let Some(_) = self.list.remove(identifier) {
-            DbOps::DbDropped
-        }else {
-            DbOps::DbNotFound
-        }
-    }
-
-    pub async fn memdb_swap(&mut self, values: &Tdb) -> &Self {
-        self.datetime = values.datetime.clone();
-        self.list = values.list.clone();
-
-        self
-    }
     /// Create a new database that contains the databases
-    pub async fn db_create(&self, identifier: &str) -> Result<FileOps> {
+    async fn create_on_disk(&self, identifier: &str) -> Result<FileOps> {
         let mut db_path = PathBuf::new();
         db_path.push("TuringFeedsRepo");
         db_path.push(identifier);
         
 
         match DirBuilder::new().recursive(false).create(db_path).await {
-            Ok(_) => Ok(FileOps::CreateTrue),
+            Ok(_) => {
+                self.commit(identifier).await
+            },
             Err(error) => Err(turingfeeds_helpers::TuringFeedsError::IoError(error)),
         }
     }
-    /// Create a new repository/directory that contains the databases
-    pub async fn db_drop(&self, identifier: &str) -> Result<FileOps> {
-        let mut db_path = PathBuf::new();
-        db_path.push("TuringFeedsRepo");
-        db_path.push(identifier);
-
-        match fs::remove_dir(db_path).await {
-            Ok(_) => Ok(FileOps::DeleteTrue),
-            Err(error) => Err(TuringFeedsError::IoError(error)),
-        }
-    }
     /// Create the Metadata file or add data to the metadata file
-    pub async fn db_commit(&self, identifier: &str) -> Result<FileOps> {
+    async fn commit(&self, identifier: &str) -> Result<FileOps> {
         let mut db_path = PathBuf::new();
         db_path.push("TuringFeedsRepo");
         db_path.push(identifier);
@@ -563,12 +470,54 @@ impl Tdb {
             Err(error) => Err(TuringFeedsError::IoError(error)),
         }
     } 
+
+    async fn get(&self, identifier: &str) -> Option<&Documents> {
+        self.list.get(identifier)
+    }
+    async fn list_docs(&self) -> Vec<String> {
+        let mut documents: Vec<String> = Vec::new();
+
+        for key in self.list.keys() {
+            documents.push(key.into())
+        }
+
+        documents
+    }
+
+    async fn update(&mut self, identifier: &str, values: Documents) -> DbOps {
+        if self.list.contains_key(identifier) == true {
+            self.list.insert(identifier.into(), values);
+
+            DbOps::DbModified
+        }else {
+            DbOps::DbNotFound
+        }
+    }
+
+    async fn swap(&mut self, values: &Tdb) -> &Self {
+        self.datetime = values.datetime.clone();
+        self.list = values.list.clone();
+
+        self
+    }
+    
+    /// Create a new repository/directory that contains the databases
+    async fn disk_db_drop(&self, identifier: &str) -> Result<FileOps> {
+        let mut db_path = PathBuf::new();
+        db_path.push("TuringFeedsRepo");
+        db_path.push(identifier);
+
+        match fs::remove_dir_all(db_path).await {
+            Ok(_) => Ok(FileOps::DeleteTrue),
+            Err(error) => Err(TuringFeedsError::IoError(error)),
+        }
+    }
 }
 
 type SledDocumentName = String;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
-pub struct Documents {
+struct Documents {
     list: HashMap<SledDocumentName, Fields>,
     //create_time: TAI64N,
     //modified_time: TAI64N,
@@ -587,16 +536,16 @@ impl Hash for Documents {
 // TODO Sled CRUD
 
 impl Documents {
-    pub async fn new() -> Self {
+    async fn new() -> Self {
         Self { list: HashMap::new() }
     }    
     /// Check whether the list are empty or not
-    pub async fn is_empty(&self) -> bool {
+    async fn is_empty(&self) -> bool {
         
         self.list.is_empty()
     }
 
-    pub async fn insert(&mut self, identifier: &str, values: Fields) -> DbOps {
+    async fn insert(&mut self, identifier: &str, values: Fields) -> DbOps {
         if self.list.contains_key(identifier) == true {
             DbOps::DocumentAlreadyExists
         }else {
@@ -606,11 +555,11 @@ impl Documents {
         }
     }
 
-    pub async fn get(&self, identifier: &str) -> Option<&Fields> {
+    async fn get(&self, identifier: &str) -> Option<&Fields> {
         self.list.get(identifier)
     }
 
-    pub async fn update(&mut self, identifier: &str, values: &Fields) -> DbOps {
+    async fn update(&mut self, identifier: &str, values: &Fields) -> DbOps {
         if self.list.contains_key(identifier) == true {
             self.list.insert(identifier.into(), values.clone());
 
@@ -620,7 +569,7 @@ impl Documents {
         }
     }
 
-    pub async fn remove(&mut self, identifier: &str) -> DbOps {
+    async fn remove(&mut self, identifier: &str) -> DbOps {
         if let Some(_) = self.list.remove(identifier) {
             DbOps::DocumentDropped
         }else {
@@ -628,7 +577,7 @@ impl Documents {
         }
     }
 
-    pub async fn swap(&mut self, value: &Documents) -> &Self {
+    async fn swap(&mut self, value: &Documents) -> &Self {
         self.list = value.list.clone();
         
 
@@ -637,7 +586,7 @@ impl Documents {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
-pub struct Fields {
+struct Fields {
     // metadata includes timestamp for `Self` for each particular field
     list: HashMap<String, FieldMetadata>
 }
@@ -652,19 +601,19 @@ impl Hash for Fields {
 }
 
 impl Fields {
-    pub async fn new() -> Self {
+    async fn new() -> Self {
 
         Self {
             list: HashMap::default(),
         }
     }
     /// Check whether the fields are empty or not
-    pub async fn is_empty(&self) -> bool {
+    async fn is_empty(&self) -> bool {
         
         self.list.is_empty()
     }
 
-    pub async fn insert(&mut self, identifier: &str, value: FieldMetadata) -> DbOps {
+    async fn insert(&mut self, identifier: &str, value: FieldMetadata) -> DbOps {
         
         if self.list.contains_key(identifier) == true { 
 
@@ -678,7 +627,7 @@ impl Fields {
         }
     }
     /// Get the field returning (FieldName, FieldMetadata)
-    pub async fn get(&self, identifier: &str) -> Option<&FieldMetadata> {
+    async fn get(&self, identifier: &str) -> Option<&FieldMetadata> {
 
         match self.list.get(identifier) {
             Some(field) => Some(field),
@@ -687,7 +636,7 @@ impl Fields {
     }
     /// Get only the key since the value only updates the time modified 
     /// which is done automatically by the `FieldMetadata::new().await.update_modified_time().await` method
-    pub async fn update(&mut self, identifier: &str) -> DbOps {
+    async fn update(&mut self, identifier: &str) -> DbOps {
 
         match self.list.get_mut(identifier) {
             Some(field) => {
@@ -699,7 +648,7 @@ impl Fields {
         }
     }
 
-    pub async fn remove(&mut self, identifier: &str) -> DbOps {
+    async fn remove(&mut self, identifier: &str) -> DbOps {
 
         if let Some(_) = self.list.remove(identifier) {
             DbOps::FieldDropped
@@ -708,7 +657,7 @@ impl Fields {
         }
     }
 
-    pub async fn swap(&mut self, value: &Fields) -> &Self {
+    async fn swap(&mut self, value: &Fields) -> &Self {
         self.list = value.list.clone();
 
         self
@@ -717,7 +666,7 @@ impl Fields {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Hash)]
-pub struct FieldMetadata {  
+struct FieldMetadata {  
     create_time: TAI64N,
     modified_time: TAI64N,
     //data: Vec<u8>, // This cant go to in-memory DB because of size
@@ -728,7 +677,7 @@ pub struct FieldMetadata {
 }
 
 impl FieldMetadata {
-    pub async fn new() -> Self {
+    async fn new() -> Self {
         let now = TAI64N::now();
 
         Self {
@@ -737,24 +686,24 @@ impl FieldMetadata {
         }
     }
 
-    pub async fn swap(&mut self, value: &FieldMetadata) -> &Self {
+    async fn swap(&mut self, value: &FieldMetadata) -> &Self {
         self.create_time = value.create_time;
         self.modified_time = value.modified_time;
 
         self
     }
 
-    pub async fn update_modified_time(&mut self) -> &Self {
+    async fn update_modified_time(&mut self) -> &Self {
         self.modified_time = TAI64N::now();
 
         self
     }
 
-    pub async fn get_create_time(&self) -> TAI64N {
+    async fn get_create_time(&self) -> TAI64N {
         self.create_time
     }
 
-    pub async fn get_modified_time(&self) -> TAI64N {
+    async fn get_modified_time(&self) -> TAI64N {
         self.modified_time
     }
 }
