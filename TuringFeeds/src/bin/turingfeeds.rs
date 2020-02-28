@@ -10,7 +10,7 @@ use async_std::{
 use custom_codes::{DbOps, FileOps};
 
 use turingfeeds::{Result, TuringFeeds};
-use turingfeeds_helpers::{OpsOutcome, TuringFeedsError, DocumentMethods, RepoCommands, PrivilegedTuringCommands, UnprivilegedTuringCommands, SuperUserTuringCommands, OperationErrors, IntegrityErrors, TuringTerminator};
+use turingfeeds_helpers::{OpsOutcome, DocumentMethods, RepoCommands, PrivilegedTuringCommands, UnprivilegedTuringCommands, SuperUserTuringCommands, OperationErrors, IntegrityErrors, TuringTerminator};
 
 const ADDRESS: &str = "127.0.0.1:43434";
 const BUFFER_CAPACITY: usize = 64 * 1024; //16Kb
@@ -38,44 +38,11 @@ const BUFFER_DATA_CAPACITY: usize = 1024 * 1024 * 16; // Db cannot hold data mor
 // TODO Add state machines to ensure successful command completion before shutdown like Idle, Processing, Finished try Rc or a counter
 
 #[async_std::main]
-async fn main() -> Result<()> {
-    // Check if database repository exists, if not exit with an error
-    /*match REPO.set(TuringFeeds::new().await.init().await?) {
-        Ok(_) => (),
-        Err(error) => { eprintln!("{:?}", error); panic!(); }
-    }  
-
-    let doc = TFDocument::new().await
-        .data(vec![9]).await;
-    
-    repo_inner_value().await.memdb_doc_create("Data1", "doc1", doc.clone()).await;
-    repo_inner_value().await.memdb_doc_create("Data1", "doc1", doc.clone()).await;
-    repo_inner_value().await.memdb_doc_create("Data1", "doc3", doc.clone()).await;
-    repo_inner_value().await.memdb_doc_create("tttt", "doc3", doc.clone()).await;
-    */
-
-    //dbg!(&REPO);
-    /*let mut fields1 = FieldMetadata::new().await;
-
-    fields1.update_modified_time().await;
-
-    let fields2 = FieldMetadata::new().await;
-    let mut foo2 = Fields::new().await;
-    foo2.insert("field_swap", fields2).await;
-
-    let mut foo = Fields::new().await;
-    
-    let mut tf = TuringFeeds::new().await;
-    //tf.create().await?;
-    let mut documents = Documents::new().await;
-    documents.insert("doc3", foo).await;
-    let mut db = Tdb::memdb_new().await;*/
-    //db.db_create("db3").await?;
-    //tf.init().await;
+async fn main() -> anyhow::Result<()> {
     let mut tf = TuringFeeds::new().await;
     tf.repo_init().await;
     dbg!(&tf.db_create("db1").await?);
-    dbg!(&tf.document_create("db0", "doc7_db0").await?); // Database document sled is being overwritten
+    dbg!(&tf.document_create("db0", "doc8_db0").await?); // Database document sled is being overwritten
     dbg!(&tf.db_read("db0").await);
     //dbg!(&tf.db_list().await);
     //tf.db_insert();
@@ -148,7 +115,7 @@ async fn main() -> Result<()> {
 
     Ok(())
 }*/
-
+/*
 async fn handle_client(mut stream: TcpStream) -> Result<SocketAddr> {
     println!("↓[CONNECTED] device[{}]", stream.peer_addr()?);
     let mut buffer = [0; BUFFER_CAPACITY];
@@ -289,7 +256,7 @@ async fn error_to_client(error: TuringFeedsError) -> DbOps {
         TuringFeedsError::BufferDataCapacityFull => DbOps::EncounteredErrors("BUFFER_CAPACITY_FULL".into()),
         TuringFeedsError::OsString(inner) => DbOps::EncounteredErrors(format!("{:?}", inner)),
     }
-}
+}*/
 /* Future features for account rights
 async fn priviliged_commands(command: PrivilegedTuringCommands) -> DbOps {
     match command {

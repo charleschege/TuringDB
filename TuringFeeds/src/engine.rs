@@ -18,9 +18,10 @@ use std::{
 use tai64::TAI64N;
 use lazy_static::*;
 use sled::{TransactionResult, Config, IVec};
-use turingfeeds_helpers::{TuringFeedsError, DocumentMethods};
+use turingfeeds_helpers::{DocumentMethods};
+use anyhow::Result;
 
-use crate::{AccessRights, RandIdentifier, Result, Role};
+use crate::{AccessRights, RandIdentifier, Role};
 use lazy_static::*;
 use evmap::{ReadHandle, WriteHandle};
 
@@ -172,14 +173,10 @@ impl TuringFeeds {
         let mut repo_path = PathBuf::new();
         repo_path.push("TuringFeedsRepo");
 
-        match DirBuilder::new().recursive(false).create(repo_path).await {
-            Ok(_) => {
-                self.create_ops_log_file().await?;
-                self.create_errors_log_file().await?;
-                Ok(FileOps::CreateTrue)
-            },
-            Err(error) => Err(TuringFeedsError::IoError(error)),
-        }
+        DirBuilder::new().recursive(false).create(repo_path).await?;
+        self.create_ops_log_file().await?;
+        self.create_errors_log_file().await?;
+        Ok(FileOps::CreateTrue)
     }
     /// Create a new repository/directory that contains the databases
     async fn create_ops_log_file(&self) -> Result<FileOps> {
@@ -187,14 +184,13 @@ impl TuringFeeds {
         log_file_path.push("TuringFeedsRepo");
         log_file_path.push("ops.log");
 
-        match OpenOptions::new()
+        OpenOptions::new()
             .create(true)
             .write(true)
             .open(log_file_path)
-            .await {
-                Ok(_) => Ok(FileOps::CreateTrue),
-                Err(error) => Err(TuringFeedsError::IoError(error)),
-            }
+            .await?;
+        
+        Ok(FileOps::CreateTrue)
     }
     /// Create a new repository/directory that contains the databases
     async fn create_errors_log_file(&self) -> Result<FileOps> {
@@ -202,14 +198,13 @@ impl TuringFeeds {
         log_file_path.push("TuringFeedsRepo");
         log_file_path.push("errors.log");
 
-        match OpenOptions::new()
+        OpenOptions::new()
             .create(true)
             .write(true)
             .open(log_file_path)
-            .await {
-                Ok(_) => Ok(FileOps::CreateTrue),
-                Err(error) => Err(TuringFeedsError::IoError(error)),
-            }
+            .await?;
+        
+        Ok(FileOps::CreateTrue)
     }
     /// Create a new repository/directory that contains the databases
     pub async fn repo_drop(&self) -> Result<FileOps> {
@@ -217,10 +212,9 @@ impl TuringFeeds {
         let mut repo_path = PathBuf::new();
         repo_path.push("TuringFeedsRepo");
 
-        match fs::remove_dir_all(repo_path).await {
-            Ok(_) => Ok(FileOps::DeleteTrue),
-            Err(error) => Err(TuringFeedsError::IoError(error)),
-        }
+        fs::remove_dir_all(repo_path).await?;
+
+        Ok(FileOps::DeleteTrue)
     }
     // TODO DB - CRUDL
     // TODO DOCUMENT - CRUDL
@@ -319,21 +313,16 @@ impl TuringFeeds {
             if db.list.contains_key(doc_name) == true {
                 Ok(DbOps::DocumentAlreadyExists)
             }else {
-                dbg!(&doc_path);
-                match sled::Config::default()
+                sled::Config::default()
                     .create_new(false)
                     .path(doc_path)
-                    .open() {
-                        Ok(_) => {
-                            db.insert(doc_name.into(), Documents::new().await).await?;
-                            db.commit(db_name).await?;
-                            self.writer.lock().await.update(db_name.into(), Box::new(db));
-                            self.writer.lock().await.refresh();
+                    .open()?;
+                db.insert(doc_name.into(), Documents::new().await).await?;
+                db.commit(db_name).await?;
+                self.writer.lock().await.update(db_name.into(), Box::new(db));
+                self.writer.lock().await.refresh();
 
-                            Ok(DbOps::DocumentCreated)
-                        },
-                        Err(error) => Err(sled_errors(error).await),
-                    }
+                Ok(DbOps::DocumentCreated)
             }
         }else {
             Ok(DbOps::DbNotFound)
@@ -342,14 +331,14 @@ impl TuringFeeds {
 }
 
 #[derive(Debug)]
-struct LogFile {
-    error: TuringFeedsError,
+struct LogFile<T> {
+    error: Result<T>,
     timestamp: TAI64N,
 }
 
-impl LogFile {
+impl<T> LogFile<T> where T: std::fmt::Debug {
     ///Write to logger file
-    async fn log_error_to_file(&self, error: TuringFeedsError) -> Result<()> {
+    async fn log_error_to_file(&self, error: T) -> Result<()> {
         let mut log_file_path = PathBuf::new();
         log_file_path.push("TuringFeedsRepo");
         log_file_path.push("errors.log");
@@ -364,18 +353,6 @@ impl LogFile {
 
         file.write_all(&error_customized.into_bytes()).await?;
         Ok(file.sync_all().await?)
-    }
-}
-
-async fn sled_errors(error: sled::Error) -> TuringFeedsError {
-    use sled::Error as SledError;
-    use async_std::io::Error;
-    match error {
-        SledError::CollectionNotFound(_) => TuringFeedsError::IoError(Error::new(ErrorKind::Other, "SledError::CollectionNotFound")),
-        SledError::Unsupported(value) => TuringFeedsError::IoError(Error::new(ErrorKind::Other, "SledError::".to_owned() + value.as_str())),
-        SledError::ReportableBug(value) => TuringFeedsError::IoError(Error::new(ErrorKind::Other, "SledError::".to_owned() + value.as_str())),
-        SledError::Io(value) => TuringFeedsError::IoError(value),
-        SledError::Corruption{at} => TuringFeedsError::IoError(Error::new(ErrorKind::Other, format!("SledError::{:?}", at))),
     }
 }
 type DocumentsID = String;
@@ -436,14 +413,9 @@ impl Tdb {
         let mut db_path = PathBuf::new();
         db_path.push("TuringFeedsRepo");
         db_path.push(identifier);
-        
+        DirBuilder::new().recursive(false).create(db_path).await?;
 
-        match DirBuilder::new().recursive(false).create(db_path).await {
-            Ok(_) => {
-                self.commit(identifier).await
-            },
-            Err(error) => Err(turingfeeds_helpers::TuringFeedsError::IoError(error)),
-        }
+        self.commit(identifier).await
     }
     /// Create the Metadata file or add data to the metadata file
     async fn commit(&self, identifier: &str) -> Result<FileOps> {
@@ -453,22 +425,17 @@ impl Tdb {
         db_path.push(identifier);
         db_path.set_extension("log");
 
-        match OpenOptions::new()
+        let mut file = OpenOptions::new()
             .create(true)
             .read(false)
             .write(true)
             .open(db_path)
-            .await
-        {
-            Ok(mut file) => {
-                let data = ron::ser::to_string(&self)?;
-                file.write_all(&data.as_bytes().to_owned()).await?;
-                file.sync_all().await?;
+            .await?;
+        let data = ron::ser::to_string(&self)?;
+        file.write_all(&data.as_bytes().to_owned()).await?;
+        file.sync_all().await?;
 
-                Ok(FileOps::WriteTrue)
-            }
-            Err(error) => Err(TuringFeedsError::IoError(error)),
-        }
+        Ok(FileOps::WriteTrue)
     } 
 
     async fn get(&self, identifier: &str) -> Option<&Documents> {
@@ -506,11 +473,9 @@ impl Tdb {
         let mut db_path = PathBuf::new();
         db_path.push("TuringFeedsRepo");
         db_path.push(identifier);
-
-        match fs::remove_dir_all(db_path).await {
-            Ok(_) => Ok(FileOps::DeleteTrue),
-            Err(error) => Err(TuringFeedsError::IoError(error)),
-        }
+        fs::remove_dir_all(db_path).await?;
+        
+        Ok(FileOps::DeleteTrue)
     }
 }
 
