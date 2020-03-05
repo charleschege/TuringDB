@@ -39,21 +39,56 @@ const BUFFER_DATA_CAPACITY: usize = 1024 * 1024 * 16; // Db cannot hold data mor
 
 #[async_std::main]
 async fn main() -> anyhow::Result<()> {
+    let insert_data = DocumentMethods{
+        db: "db0".into(),
+        document: "doc0_db0".into(),
+        field: "field_db0".into(),
+        data: vec![16],
+    };
+
+    let insert_data2 = DocumentMethods{
+        db: "db0".into(),
+        document: "doc0_db0".into(),
+        field: "field_db1".into(),
+        data: vec![8],
+    };
+
+    let update_data2 = DocumentMethods{
+        db: "db0".into(),
+        document: "doc0_db0".into(),
+        field: "field_db1".into(),
+        data: vec![64],
+    };
+
     let mut tf = TuringFeeds::new().await;
+    //dbg!(&tf.repo_create().await);
     tf.repo_init().await;
-    dbg!(&tf.db_create("db1").await?);
-    dbg!(&tf.document_create("db0", "doc8_db0").await?); // Database document sled is being overwritten
+    dbg!(&tf.db_create("db3").await);
+    dbg!(&tf.db_list().await);
     dbg!(&tf.db_read("db0").await);
-    //dbg!(&tf.db_list().await);
-    //tf.db_insert();
+    dbg!(&tf.document_create("db0", "doc2_db0").await);
+    dbg!(&tf.document_create("db0", "doc4_db0").await);
+    dbg!(&tf.db_read("db0").await);
+    dbg!(&tf.document_read("db0", "doc1_db0").await);
+    dbg!(&tf.field_insert(insert_data2).await);
+    dbg!(&tf.document_read("db0", "doc0_db0").await);
 
+    let field = turingfeeds_helpers::FieldLite {
+        db: "db0".into(),
+        document: "doc0_db0".into(),
+        field: "field_db1".into(),
+    };
 
+    dbg!(&tf.field_get(field).await);
 
-    //foo.insert_field("foo_field1", fields1).await;
-    //foo.insert_field("foo_field2", fields2).await;
+    let field_to_drop = turingfeeds_helpers::FieldLite {
+        db: "db0".into(),
+        document: "doc0_db0".into(),
+        field: "field_db1".into(),
+    };
 
-
-    //dbg!(&foo.update_field("foo_field1").await);
+    dbg!(&tf.field_drop(field_to_drop.clone()).await);
+    dbg!(&tf.field_get(field_to_drop).await);
 
     /*match TcpListener::bind(ADDRESS).await {
         Ok(listener) => {

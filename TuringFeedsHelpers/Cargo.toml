@@ -12,4 +12,4 @@ walkdir = "2.2.9"
 ron = "0.5.1"
 serde = { version = "1.0.14", features = ["derive"] }
 bincode = "1.2.1"
-custom_codes = { path = "../../custom_codes" }
+custom_codes = "1.2.5"

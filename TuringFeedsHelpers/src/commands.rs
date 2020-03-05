@@ -23,13 +23,23 @@ pub enum SuperUserTuringCommands {
     ///Insert a field into a document
     InsertField(DocumentMethods),
     /// Read a particular document
-    FetchDocument(DocumentMethods),
+    FetchDocument(FieldLite),
+    /// Remove a particular document
+    RemoveDocument(FieldLite),
     /// Updata a document
     ModifyDocument(DocumentMethods),
     /// Remove a document
     DeleteDocument(DocumentMethods),
     /// Give a default option
     Unspecified,
+}
+
+/// Commands to perform on the repo and its contents by a privileged user
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct FieldLite {
+    pub db: String,
+    pub document: String,
+    pub field: String,
 }
 
 /// Commands to perform on the repo and its contents by a privileged user

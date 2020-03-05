@@ -18,12 +18,15 @@ use std::{
 use tai64::TAI64N;
 use lazy_static::*;
 use sled::{TransactionResult, Config, IVec};
-use turingfeeds_helpers::{DocumentMethods};
+use turingfeeds_helpers::{DocumentMethods, FieldLite};
 use anyhow::Result;
 
 use crate::{AccessRights, RandIdentifier, Role};
 use lazy_static::*;
 use evmap::{ReadHandle, WriteHandle};
+
+#[allow(non_upper_case_globals)]
+static TuringFeedsRepo: &'static str = "TuringFeedsRepo";
 
 /// No need for rights as the user who decrypts the DB has total access
 
@@ -46,16 +49,8 @@ type EvmapWriter = Arc<Mutex<WriteHandle<String, Box<Tdb>>>>;
 /// Handle list of databases
 #[derive(Debug)]
 pub struct TuringFeeds {
-    //reader: Arc<Mutex<ReadHandle<String, Box<Tdb>>>>,
     reader: ReadHandle<String, Box<Tdb>>,
     writer: Arc<Mutex<WriteHandle<String, Box<Tdb>>>>,
-    //hash: RepoBlake2hash,
-    //secrecy: TuringSecrecy,
-    //config: TuringConfig,
-    //authstate: Assymetric Crypto
-    //superuser: Only one
-    // admins: vec![], -> (User, PriveledgeAccess)
-    //users: vec![] -> ""
 }
 
 impl TuringFeeds {
@@ -79,7 +74,7 @@ impl TuringFeeds {
     /// Throw errors if any otherwise    
     pub async fn repo_init(&mut self) -> &Self{
         let mut repo_path = PathBuf::new();
-        repo_path.push("TuringFeedsRepo");
+        repo_path.push(TuringFeedsRepo);
         repo_path.push("REPO");
         repo_path.set_extension("log");
 
@@ -171,7 +166,7 @@ impl TuringFeeds {
     /// Create a new repository/directory that contains the databases
     pub async fn repo_create(&self) -> Result<FileOps> {
         let mut repo_path = PathBuf::new();
-        repo_path.push("TuringFeedsRepo");
+        repo_path.push(TuringFeedsRepo);
 
         DirBuilder::new().recursive(false).create(repo_path).await?;
         self.create_ops_log_file().await?;
@@ -179,38 +174,10 @@ impl TuringFeeds {
         Ok(FileOps::CreateTrue)
     }
     /// Create a new repository/directory that contains the databases
-    async fn create_ops_log_file(&self) -> Result<FileOps> {
-        let mut log_file_path = PathBuf::new();
-        log_file_path.push("TuringFeedsRepo");
-        log_file_path.push("ops.log");
-
-        OpenOptions::new()
-            .create(true)
-            .write(true)
-            .open(log_file_path)
-            .await?;
-        
-        Ok(FileOps::CreateTrue)
-    }
-    /// Create a new repository/directory that contains the databases
-    async fn create_errors_log_file(&self) -> Result<FileOps> {
-        let mut log_file_path = PathBuf::new();
-        log_file_path.push("TuringFeedsRepo");
-        log_file_path.push("errors.log");
-
-        OpenOptions::new()
-            .create(true)
-            .write(true)
-            .open(log_file_path)
-            .await?;
-        
-        Ok(FileOps::CreateTrue)
-    }
-    /// Create a new repository/directory that contains the databases
     pub async fn repo_drop(&self) -> Result<FileOps> {
         // TODO - list all the databases and their fields that are being dropped and log to `ops.log` file
         let mut repo_path = PathBuf::new();
-        repo_path.push("TuringFeedsRepo");
+        repo_path.push(TuringFeedsRepo);
 
         fs::remove_dir_all(repo_path).await?;
 
@@ -230,25 +197,36 @@ impl TuringFeeds {
         if self.reader.contains_key(db_name) == true {
             Ok(DbOps::DbAlreadyExists)
         }else {
-            let values = Tdb::new().await;
-            values.create_on_disk(db_name).await?;
+            let db = Tdb::new().await;
+            self.create_on_disk(db_name, &db).await?;
             
-            self.writer.lock().await.insert(db_name.into(), Box::new(values.get_self().await));
+            self.writer.lock().await.insert(db_name.into(), Box::new(db));
             self.writer.lock().await.refresh();
             Ok(DbOps::DbCreated)
         }
     }
     /// Remove a Database if it exists
     pub async fn db_drop(&self, db_name: &str) -> Result<DbOps> {
-        if let Some(db) = self.db_get(db_name).await {
-            let mut values = Tdb::new().await;
-            values.swap(&db).await;
-            values.disk_db_drop(db_name).await?;
+        if let Some(_) = self.db_get(db_name).await {
+            self.disk_db_drop(db_name).await?;
             self.writer.lock().await.empty(db_name.into());
             self.writer.lock().await.refresh();
             Ok(DbOps::DbDropped)
         }else {
             Ok(DbOps::DbNotFound)
+        }
+    } 
+    /// Get list of databases
+    pub async fn db_list(&self) -> DbOps {
+        let mut db_list: Vec<String> = Vec::new();
+        for (key, _) in &self.reader.read() {
+            db_list.push(key.into());
+        }
+
+        if db_list.is_empty() == true {
+            DbOps::RepoEmpty
+        }else {
+            DbOps::DbList(db_list)
         }
     }
     /// Get the documents of a database
@@ -268,18 +246,33 @@ impl TuringFeeds {
             DbOps::DbNotFound
         }
     }
-    /// Get list of databases
-    pub async fn db_list(&self) -> DbOps {
-        let mut db_list: Vec<String> = Vec::new();
-        for (key, _) in &self.reader.read() {
-            db_list.push(key.into());
-        }
+    /// Create a new repository/directory that contains the databases
+    async fn create_ops_log_file(&self) -> Result<FileOps> {
+        let mut log_file_path = PathBuf::new();
+        log_file_path.push(TuringFeedsRepo);
+        log_file_path.push("ops.log");
 
-        if db_list.is_empty() == true {
-            DbOps::RepoEmpty
-        }else {
-            DbOps::DbList(db_list)
-        }
+        OpenOptions::new()
+            .create(true)
+            .write(true)
+            .open(log_file_path)
+            .await?;
+        
+        Ok(FileOps::CreateTrue)
+    }
+    /// Create a new repository/directory that contains the databases
+    async fn create_errors_log_file(&self) -> Result<FileOps> {
+        let mut log_file_path = PathBuf::new();
+        log_file_path.push(TuringFeedsRepo);
+        log_file_path.push("errors.log");
+
+        OpenOptions::new()
+            .create(true)
+            .write(true)
+            .open(log_file_path)
+            .await?;
+        
+        Ok(FileOps::CreateTrue)
     }
     /// Get a Database if it exists. This function is not public and is used by methods in this `impl TuringFeeds` block
     /// to get the documents in a given database
@@ -287,42 +280,261 @@ impl TuringFeeds {
         match self.reader.get(db_name) {
             Some(value) => { 
                 if let Some(value) = value.iter().next().clone() {
-                    Some(*value.clone())
-                }else {
+                    Some(*value.clone())//
+                }else {//
                     None
                 }
-             },
+            },
             None => { None }
         }
     }
-    // ******DOCUMENTS************
-    /// TODO CREATE DOCUMENT & UPDATE LOG
-    /// TODO READ A DOCUMENT
-    /// TODO LIST ALL DOCUMENTs
-    /// TODO UPDATE A DOCUMENT & UPDATE LOG
-    /// TODO DELETE A DOCUMENT & UPDATE LOG
-    
-    /// Update a field 
-    pub async fn document_create(&mut self, db_name: &str, doc_name: &str) -> Result<DbOps> {
-        let mut doc_path = PathBuf::new();
-        doc_path.push("TuringFeedsRepo");
-        doc_path.push(db_name);
-        doc_path.push(doc_name);
+    /// Create a new database that contains the databases
+    async fn create_on_disk(&self, db_name: &str, db: &Tdb) -> Result<FileOps> {
+        let mut db_path = PathBuf::new();
+        db_path.push(TuringFeedsRepo);
+        db_path.push(db_name);
+        DirBuilder::new().recursive(false).create(db_path).await?;
 
-        if let Some(mut db) = self.db_get(&db_name).await {
-            if db.list.contains_key(doc_name) == true {
-                Ok(DbOps::DocumentAlreadyExists)
+        self.commit(db_name, db).await
+    }
+    /// Create the Metadata file or add data to the metadata file
+    async fn commit(&self, db_name: &str, db: &Tdb) -> Result<FileOps> {
+        let mut db_path = PathBuf::new();
+        db_path.push(TuringFeedsRepo);
+        db_path.push(db_name);
+        db_path.push(db_name);
+        db_path.set_extension("log");
+
+        let mut file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(db_path)
+            .await?;
+        let data = ron::ser::to_string(db)?;
+        file.write_all(&data.into_bytes()).await?;
+        file.sync_all().await?;
+        //writeln!(&file, "{}", data).await?;
+
+        Ok(FileOps::WriteTrue)
+    }
+    /// Create a new repository/directory that contains the databases
+    async fn disk_db_drop(&self, identifier: &str) -> Result<FileOps> {
+        let mut db_path = PathBuf::new();
+        db_path.push(TuringFeedsRepo);
+        db_path.push(identifier);
+        fs::remove_dir_all(db_path).await?;
+        
+        Ok(FileOps::DeleteTrue)
+    }
+    
+    ///Handle A Document
+    /// 
+    /// Create a Document backed by Sled database
+    pub async fn document_create(&self, db_name: &str, document_name: &str) -> Result<DbOps> {
+        let mut document_path = PathBuf::new();
+        document_path.push(TuringFeedsRepo);
+        document_path.push(db_name);
+        document_path.push(document_name);
+
+        if let Some(mut db) = self.db_get(db_name).await {
+            sled::Config::default()
+                .create_new(true)
+                .path(document_path)
+                .open()?;
+            
+            db.list.insert(document_name.into(), Document::new().await);
+
+            self.commit(db_name, &db).await?;
+            self.writer.lock().await.update(db_name.into(), Box::new(db));
+            self.writer.lock().await.refresh();
+
+            Ok(DbOps::DocumentCreated)
+        }else {
+            Ok(DbOps::DbNotFound)
+        }
+    }
+    /// Read document fields returning a DbOps::FieldList(String)
+    pub async fn document_read(&self, db_name: &str, document_name: &str) -> DbOps {
+        if let Some(db) = self.db_get(db_name).await {
+            if let Some(document) = db.list.get(document_name) {
+                let mut fields: Vec<String> = Vec::new();
+                for value in document.list.keys() {
+                    fields.push(value.into());
+                }
+
+               if fields.is_empty() == true {
+                   DbOps::DocumentEmpty
+               }else {
+                    DbOps::FieldList(fields)
+               }
             }else {
-                sled::Config::default()
-                    .create_new(false)
-                    .path(doc_path)
-                    .open()?;
-                db.insert(doc_name.into(), Documents::new().await).await?;
-                db.commit(db_name).await?;
+                DbOps::DocumentNotFound
+            }
+        }else {
+            DbOps::DbNotFound
+        }
+    }
+    /// Drop a document
+    pub async fn document_drop(&self, db_name: &str, document_name: &str) -> Result<DbOps> {
+        if let Some(mut db) = self.db_get(db_name).await {
+            if let Some(_) = db.list.get(document_name) {
+                let mut document_path = PathBuf::new();
+                document_path.push(TuringFeedsRepo);
+                document_path.push(db_name);
+                document_path.push(document_name);
+
+                fs::remove_dir_all(document_path).await?;
+                db.list.remove(document_name);
+                self.commit(db_name, &db).await?;
                 self.writer.lock().await.update(db_name.into(), Box::new(db));
                 self.writer.lock().await.refresh();
+                
+                Ok(DbOps::DocumentDropped)
+            }else {
+                Ok(DbOps::DocumentNotFound)
+            }
+        }else {
+            Ok(DbOps::DbNotFound)
+        }
+    }
 
-                Ok(DbOps::DocumentCreated)
+    /// Handle A Field
+    /// 
+    /// CRUDL
+    /// Insert a field into a specified document
+    pub async fn field_insert(&self, values: DocumentMethods) -> Result<DbOps> {
+
+        if let Some(mut db) = self.db_get(&values.db).await {
+            if let Some(document) = db.list.get_mut(&values.document) {
+                let mut document_path = PathBuf::new();
+                document_path.push(TuringFeedsRepo);
+                document_path.push(&values.db);
+                document_path.push(&values.document);
+
+                let sled_document = sled::Config::default()
+                    .create_new(false)
+                    .path(document_path)
+                    .open()?;
+
+                if sled_document.contains_key(&values.field.as_bytes())? == true {
+                    Ok(DbOps::FieldAlreadyExists)
+                }else{
+                    sled_document.insert(values.field.clone().into_bytes(), values.data)?;
+
+                    document.list.insert(values.field, FieldMetadata::new().await);
+                    self.commit(&values.db, &db).await?;
+                    self.writer.lock().await.update(values.db, Box::new(db));
+                    self.writer.lock().await.refresh();                    
+
+                    Ok(DbOps::FieldInserted)
+                }
+            }else {
+                Ok(DbOps::DocumentNotFound)
+            }
+        }else {
+            Ok(DbOps::DbNotFound)
+        }
+    }
+    /// Read the contents of a field
+    pub async fn field_get(&self, values: FieldLite) -> Result<DbOps> {
+        let db_name = values.db;
+        let document_name = values.document;
+        let field_name = values.field;
+
+        if let Some(db) = self.db_get(&db_name).await {
+            if let Some(_) = db.list.get(&document_name) {
+                let mut document_path = PathBuf::new();
+                document_path.push(TuringFeedsRepo);
+                document_path.push(&db_name);
+                document_path.push(&document_name);
+
+                let sled_document = sled::Config::default()
+                    .create_new(false)
+                    .path(document_path)
+                    .open()?;
+
+                if let Some(field) = sled_document.get(&field_name.as_bytes())? {
+                    Ok(DbOps::FieldContents(field.to_vec()))
+                }else {
+                    Ok(DbOps::FieldNotFound)
+                }
+            }else {
+                Ok(DbOps::DocumentNotFound)
+            }
+        }else {
+            Ok(DbOps::DbNotFound)
+        }
+    }
+    /// Remove a field from a specific document
+    pub async fn field_drop(&self, values: FieldLite) -> Result<DbOps> {
+
+        if let Some(mut db) = self.db_get(&values.db).await {
+            if let Some(document) = db.list.get_mut(&values.document) {
+                let mut document_path = PathBuf::new();
+                document_path.push(TuringFeedsRepo);
+                document_path.push(&values.db);
+                document_path.push(&values.document);
+
+                let sled_document = sled::Config::default()
+                    .create_new(false)
+                    .path(document_path)
+                    .open()?;
+
+                if let Some(_) = sled_document.transaction::<_,_, sled::Error>(|doc| {
+                        Ok(doc.remove(values.field.clone().into_bytes())?)
+                    })?
+                    {
+
+                        document.list.remove(&values.field);
+                        self.commit(&values.db, &db).await?;
+                        self.writer.lock().await.update(values.db, Box::new(db));
+                        self.writer.lock().await.refresh();                    
+
+                        Ok(DbOps::FieldDropped)
+                }else {
+                    Ok(DbOps::FieldNotFound)
+                }
+            }else {
+                Ok(DbOps::DocumentNotFound)
+            }
+        }else {
+            Ok(DbOps::DbNotFound)
+        }
+    }
+    /// Update the contents of a field in a specific document
+    pub async fn field_update(&self, values: DocumentMethods) -> Result<DbOps> {
+
+        if let Some(mut db) = self.db_get(&values.db).await {
+            if let Some(document) = db.list.get_mut(&values.document) {
+                let mut document_path = PathBuf::new();
+                document_path.push(TuringFeedsRepo);
+                document_path.push(&values.db);
+                document_path.push(&values.document);
+
+                if let Some(field) = document.list.get_mut(&values.field) {
+                    let sled_document = sled::Config::default()
+                    .create_new(false)
+                    .path(document_path)
+                    .open()?;
+
+                    if sled_document.contains_key(&values.field.as_bytes())? == true {
+                        sled_document.insert(values.field.clone().into_bytes(), values.data)?;
+                        field.modified_time = TAI64N::now();
+
+                        self.commit(&values.db, &db).await?;
+                        self.writer.lock().await.update(values.db, Box::new(db));
+                        self.writer.lock().await.refresh();
+
+                        Ok(DbOps::FieldModified)
+                    }else{
+                        Ok(DbOps::FieldNotFound)
+                    }
+                }else{
+                    Ok(DbOps::FieldNotFound)
+                }
+            }else {
+                Ok(DbOps::DocumentNotFound)
             }
         }else {
             Ok(DbOps::DbNotFound)
@@ -340,7 +552,7 @@ impl<T> LogFile<T> where T: std::fmt::Debug {
     ///Write to logger file
     async fn log_error_to_file(&self, error: T) -> Result<()> {
         let mut log_file_path = PathBuf::new();
-        log_file_path.push("TuringFeedsRepo");
+        log_file_path.push(TuringFeedsRepo);
         log_file_path.push("errors.log");
 
         let mut file = OpenOptions::new()
@@ -355,12 +567,11 @@ impl<T> LogFile<T> where T: std::fmt::Debug {
         Ok(file.sync_all().await?)
     }
 }
-type DocumentsID = String;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 struct Tdb {
     datetime: TAI64N,
-    list: HashMap<DocumentsID, Documents>,
+    list: HashMap<SledDocumentName, Document>,
     //rights: Option<HashMap<UserIdentifier, (Role, AccessRights)>>,
     //database_hash: Blake2hash,
     //secrecy: TuringSecrecy,
@@ -388,107 +599,20 @@ impl Tdb {
             datetime: TAI64N::now(),
             list: HashMap::new(),
         }
-    }  
-    async fn get_self(self) -> Self {
-        self
-    }   
-    /// Check whether the list are empty or not
-    async fn is_empty(&self) -> bool {
-        
-        self.list.is_empty()
-    }
-
-    async fn insert(&mut self, identifier: &str, values: Documents) -> Result<DbOps> {
-
-        if self.list.contains_key(identifier) == true {
-            Ok(DbOps::DocumentAlreadyExists)
-        }else {            
-            self.list.insert(identifier.into(), values);
-            Ok(DbOps::DocumentCreated)
-        }
-    }
-
-    /// Create a new database that contains the databases
-    async fn create_on_disk(&self, identifier: &str) -> Result<FileOps> {
-        let mut db_path = PathBuf::new();
-        db_path.push("TuringFeedsRepo");
-        db_path.push(identifier);
-        DirBuilder::new().recursive(false).create(db_path).await?;
-
-        self.commit(identifier).await
-    }
-    /// Create the Metadata file or add data to the metadata file
-    async fn commit(&self, identifier: &str) -> Result<FileOps> {
-        let mut db_path = PathBuf::new();
-        db_path.push("TuringFeedsRepo");
-        db_path.push(identifier);
-        db_path.push(identifier);
-        db_path.set_extension("log");
-
-        let mut file = OpenOptions::new()
-            .create(true)
-            .read(false)
-            .write(true)
-            .open(db_path)
-            .await?;
-        let data = ron::ser::to_string(&self)?;
-        file.write_all(&data.as_bytes().to_owned()).await?;
-        file.sync_all().await?;
-
-        Ok(FileOps::WriteTrue)
-    } 
-
-    async fn get(&self, identifier: &str) -> Option<&Documents> {
-        self.list.get(identifier)
-    }
-    async fn list_docs(&self) -> Vec<String> {
-        let mut documents: Vec<String> = Vec::new();
-
-        for key in self.list.keys() {
-            documents.push(key.into())
-        }
-
-        documents
-    }
-
-    async fn update(&mut self, identifier: &str, values: Documents) -> DbOps {
-        if self.list.contains_key(identifier) == true {
-            self.list.insert(identifier.into(), values);
-
-            DbOps::DbModified
-        }else {
-            DbOps::DbNotFound
-        }
-    }
-
-    async fn swap(&mut self, values: &Tdb) -> &Self {
-        self.datetime = values.datetime.clone();
-        self.list = values.list.clone();
-
-        self
-    }
-    
-    /// Create a new repository/directory that contains the databases
-    async fn disk_db_drop(&self, identifier: &str) -> Result<FileOps> {
-        let mut db_path = PathBuf::new();
-        db_path.push("TuringFeedsRepo");
-        db_path.push(identifier);
-        fs::remove_dir_all(db_path).await?;
-        
-        Ok(FileOps::DeleteTrue)
     }
 }
 
 type SledDocumentName = String;
+type FieldName = String;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
-struct Documents {
-    list: HashMap<SledDocumentName, Fields>,
+struct Document {
+    list: HashMap<FieldName, FieldMetadata>,
     //create_time: TAI64N,
     //modified_time: TAI64N,
 }
 
-impl Hash for Documents {
+impl Hash for Document {
     fn hash<H: Hasher>(&self, state: &mut H) {
         for (key, value) in self.list.iter() {
             key.hash(state);
@@ -500,134 +624,10 @@ impl Hash for Documents {
 // TODO CRUD
 // TODO Sled CRUD
 
-impl Documents {
+impl Document {
     async fn new() -> Self {
         Self { list: HashMap::new() }
-    }    
-    /// Check whether the list are empty or not
-    async fn is_empty(&self) -> bool {
-        
-        self.list.is_empty()
     }
-
-    async fn insert(&mut self, identifier: &str, values: Fields) -> DbOps {
-        if self.list.contains_key(identifier) == true {
-            DbOps::DocumentAlreadyExists
-        }else {
-            self.list.insert(identifier.into(), values);
-
-            DbOps::DocumentInserted
-        }
-    }
-
-    async fn get(&self, identifier: &str) -> Option<&Fields> {
-        self.list.get(identifier)
-    }
-
-    async fn update(&mut self, identifier: &str, values: &Fields) -> DbOps {
-        if self.list.contains_key(identifier) == true {
-            self.list.insert(identifier.into(), values.clone());
-
-            DbOps::DocumentModified
-        }else {
-            DbOps::DocumentNotFound
-        }
-    }
-
-    async fn remove(&mut self, identifier: &str) -> DbOps {
-        if let Some(_) = self.list.remove(identifier) {
-            DbOps::DocumentDropped
-        }else {
-            DbOps::DocumentNotFound
-        }
-    }
-
-    async fn swap(&mut self, value: &Documents) -> &Self {
-        self.list = value.list.clone();
-        
-
-        self
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
-struct Fields {
-    // metadata includes timestamp for `Self` for each particular field
-    list: HashMap<String, FieldMetadata>
-}
-
-impl Hash for Fields {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        for (key, value) in self.list.iter() {
-            key.hash(state);
-            value.hash(state);
-        }
-    }
-}
-
-impl Fields {
-    async fn new() -> Self {
-
-        Self {
-            list: HashMap::default(),
-        }
-    }
-    /// Check whether the fields are empty or not
-    async fn is_empty(&self) -> bool {
-        
-        self.list.is_empty()
-    }
-
-    async fn insert(&mut self, identifier: &str, value: FieldMetadata) -> DbOps {
-        
-        if self.list.contains_key(identifier) == true { 
-
-            DbOps::FieldAlreadyExists
-        }else {
-            self.list.insert(identifier.into(), value);
-
-            drop(identifier);
-            
-            DbOps::FieldInserted
-        }
-    }
-    /// Get the field returning (FieldName, FieldMetadata)
-    async fn get(&self, identifier: &str) -> Option<&FieldMetadata> {
-
-        match self.list.get(identifier) {
-            Some(field) => Some(field),
-            None => None,
-        }
-    }
-    /// Get only the key since the value only updates the time modified 
-    /// which is done automatically by the `FieldMetadata::new().await.update_modified_time().await` method
-    async fn update(&mut self, identifier: &str) -> DbOps {
-
-        match self.list.get_mut(identifier) {
-            Some(field) => {
-                field.update_modified_time().await;
-                
-                DbOps::FieldModified
-            }
-            None => DbOps::FieldNotFound,
-        }
-    }
-
-    async fn remove(&mut self, identifier: &str) -> DbOps {
-
-        if let Some(_) = self.list.remove(identifier) {
-            DbOps::FieldDropped
-        }else {
-            DbOps::FieldNotFound
-        }
-    }
-
-    async fn swap(&mut self, value: &Fields) -> &Self {
-        self.list = value.list.clone();
-
-        self
-    }
-    
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Hash)]
@@ -649,27 +649,6 @@ impl FieldMetadata {
             create_time: now,
             modified_time: now,
         }
-    }
-
-    async fn swap(&mut self, value: &FieldMetadata) -> &Self {
-        self.create_time = value.create_time;
-        self.modified_time = value.modified_time;
-
-        self
-    }
-
-    async fn update_modified_time(&mut self) -> &Self {
-        self.modified_time = TAI64N::now();
-
-        self
-    }
-
-    async fn get_create_time(&self) -> TAI64N {
-        self.create_time
-    }
-
-    async fn get_modified_time(&self) -> TAI64N {
-        self.modified_time
     }
 }
 
