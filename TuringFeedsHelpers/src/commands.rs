@@ -1,109 +1,37 @@
 use serde::{Deserialize, Serialize};
-use crate::{DocumentMethods, OperationErrors};
+use crate::{DocumentOnly, FieldWithData, FieldNoData};
 
 /// Commands to perform on the repo and its contents by the repo owner known as `SuperUser`
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub enum SuperUserTuringCommands {
+pub enum TuringCommands {
     /// Initialize the Repository
-    InitRepo,
+    CreateRepo,
+    /// Read databases in a repository
+    RepoRead,
     /// Delete the Repository
     DropRepo,
-    /// Perform a checksum of the database
-    ChecksumDatabase(String),
-    /// Perform a checksum of the database
-    ChecksumTable(String),
     /// Create a database
-    CreateDatabase(String),
-    /// Read contents of a database
-    FetchDatabases(String),
+    DbCreate(String),
+    /// Read documents in a database
+    DbRead(String),
+    /// List contents of a database
+    DbList(String),
     /// Delete a database
     DropDatabase(String),
     /// Create a document
-    CreateDocument(DocumentMethods),
+    DocumentCreate(DocumentOnly),
+    /// List all fields in a document
+    DocumentList(DocumentOnly),
+    /// Delete a document and all its contents
+    DocumentDrop(DocumentOnly),
     ///Insert a field into a document
-    InsertField(DocumentMethods),
-    /// Read a particular document
-    FetchDocument(FieldLite),
+    FieldInsert(FieldWithData),
+    /// Read contents particular document
+    FieldRead(FieldNoData),
     /// Remove a particular document
-    RemoveDocument(FieldLite),
+    FieldRemove(FieldNoData),
     /// Updata a document
-    ModifyDocument(DocumentMethods),
-    /// Remove a document
-    DeleteDocument(DocumentMethods),
-    /// Give a default option
-    Unspecified,
-}
-
-/// Commands to perform on the repo and its contents by a privileged user
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
-pub struct FieldLite {
-    pub db: String,
-    pub document: String,
-    pub field: String,
-}
-
-/// Commands to perform on the repo and its contents by a privileged user
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub enum PrivilegedTuringCommands {
-    /// Perform a checksum of the database
-    ChecksumDatabase(String),
-    /// Perform a checksum of the database
-    ChecksumTable(String),
-    /// Create a database
-    CreateDatabase(String),
-    /// Read contents of a database
-    FetchDatabase(String),
-    /// Modify a database
-    ModifyDatabase(String),
-    /// Delete a database
-    DropDatabase(String),
-    /// Create a document
-    CreateDocument(DocumentMethods),
-    /// Read a particular document
-    FetchDocument(DocumentMethods),
-    /// Updata a document
-    ModifyDocument(DocumentMethods),
-    /// Remove a document
-    DeleteDocument(DocumentMethods),
-    /// Give a default option
-    Unspecified,
-}
-
-/// Commands to perform on the repo and its contents by an unprivileged user
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub enum UnprivilegedTuringCommands {    
-    /// Create a document
-    CreateDocument(DocumentMethods),
-    /// Read a particular document
-    FetchDocument(DocumentMethods),
-    /// Updata a document
-    ModifyDocument(DocumentMethods),
-    /// Remove a document
-    DeleteDocument(DocumentMethods),
-    /// Give a default option
-    Unspecified,
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub enum RepoCommands {
-    SuperUser(SuperUserTuringCommands),
-    Privileged(PrivilegedTuringCommands),
-    UnPrivileged(UnprivilegedTuringCommands),
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub enum OpsOutcome {
-    Success(DbOpsOutcome),
-    Failure(OperationErrors),
-    Stream(Vec<u8>),
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub enum DbOpsOutcome {
-    Success,
-    OpFailure(OperationErrors),
-    SuccessWithData(Vec<u8>),
-    SuccessStreamData(Vec<u8>),
+    FieldModifyDocument(FieldWithData),
 }
 
 type Key = String;
@@ -116,4 +44,7 @@ pub enum Permissions {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub struct TuringTerminator;
+pub enum TuringHeaders {
+    Terminator,
+    Initializer
+}

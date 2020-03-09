@@ -1,131 +1,29 @@
 #![forbid(unsafe_code)]
 
 use async_std::{
-    net::{TcpListener, TcpStream, SocketAddr},
+    net::{TcpListener, TcpStream, SocketAddr, ToSocketAddrs},
     task,
     prelude::*,
-    io::ErrorKind,
+    io::{ErrorKind, BufReader},
     sync::{Arc, Mutex},
+    stream::StreamExt
 };
 use custom_codes::{DbOps, FileOps};
+use anyhow::Result;
 
-use turingfeeds::{Result, TuringFeeds};
-use turingfeeds_helpers::{OpsOutcome, DocumentMethods, RepoCommands, PrivilegedTuringCommands, UnprivilegedTuringCommands, SuperUserTuringCommands, OperationErrors, IntegrityErrors, TuringTerminator};
+use turingfeeds::REPO;
+use turingfeeds_helpers::{TuringCommands, OpsErrors, TuringHeaders};
 
 const ADDRESS: &str = "127.0.0.1:43434";
 const BUFFER_CAPACITY: usize = 64 * 1024; //16Kb
 const BUFFER_DATA_CAPACITY: usize = 1024 * 1024 * 16; // Db cannot hold data more than 16MB in size
 
 
-// Just create normal hashmaps and then take 
-// (Arc<Mutex<ReadHandle<&'static str, Box<TuringFeeds>>>>, Arc<Mutex<WriteHandle<&'static str, Box<TuringFeeds>>>>) = evmap::new()
-
-
-// TODO 0. Move RwLock to lock a specific database instead of the whole REPO
-// TODO 1. CREATE REPO
-// TODO 2. DROP REPO
-// TODO 3. CREATE DATABASE
-// TODO LIST DATABASES
-// TODO 4. DROP DATABASE
-// TODO 5. GET DATABASE STATISTICS
-// TODO 6. CREATE TABLE
-// TODO 7. READ TABLE
-// TODO LIST TABLES
-// TODO 8. UPDATE TABLE
-// TODO 9. DELETE TABLE
-// TODO 10. Improve error to the client using the `error_to_client()` function
-// TODO 11. Add json conversion for replying to other programming languages
-// TODO Add state machines to ensure successful command completion before shutdown like Idle, Processing, Finished try Rc or a counter
 
 #[async_std::main]
 async fn main() -> anyhow::Result<()> {
-    let insert_data = DocumentMethods{
-        db: "db0".into(),
-        document: "doc0_db0".into(),
-        field: "field_db0".into(),
-        data: vec![16],
-    };
+    REPO.repo_init().await;
 
-    let insert_data2 = DocumentMethods{
-        db: "db0".into(),
-        document: "doc0_db0".into(),
-        field: "field_db1".into(),
-        data: vec![8],
-    };
-
-    let update_data2 = DocumentMethods{
-        db: "db0".into(),
-        document: "doc0_db0".into(),
-        field: "field_db1".into(),
-        data: vec![64],
-    };
-
-    let mut tf = TuringFeeds::new().await;
-    //dbg!(&tf.repo_create().await);
-    tf.repo_init().await;
-    dbg!(&tf.db_create("db3").await);
-    dbg!(&tf.db_list().await);
-    dbg!(&tf.db_read("db0").await);
-    dbg!(&tf.document_create("db0", "doc2_db0").await);
-    dbg!(&tf.document_create("db0", "doc4_db0").await);
-    dbg!(&tf.db_read("db0").await);
-    dbg!(&tf.document_read("db0", "doc1_db0").await);
-    dbg!(&tf.field_insert(insert_data2).await);
-    dbg!(&tf.document_read("db0", "doc0_db0").await);
-
-    let field = turingfeeds_helpers::FieldLite {
-        db: "db0".into(),
-        document: "doc0_db0".into(),
-        field: "field_db1".into(),
-    };
-
-    dbg!(&tf.field_get(field).await);
-
-    let field_to_drop = turingfeeds_helpers::FieldLite {
-        db: "db0".into(),
-        document: "doc0_db0".into(),
-        field: "field_db1".into(),
-    };
-
-    dbg!(&tf.field_drop(field_to_drop.clone()).await);
-    dbg!(&tf.field_get(field_to_drop).await);
-
-    /*match TcpListener::bind(ADDRESS).await {
-        Ok(listener) => {
-            println!("Listening on Address: {}", listener.local_addr()?);
-            while let Some(stream) = listener.incoming().next().await {
-                let stream = stream?;
-                task::spawn(async {
-                    match handle_client(stream).await {
-                        Ok(addr) => {
-                            println!("[TERMINATED] ip({}) port({})", addr.ip(), addr.port())
-                        },
-                        Err(error) => {
-                            //--eprintln!("{:?}", errors_printable(error).await);
-                        },
-                    }
-                });
-            }
-        },
-        Err(error) => {
-            panic!(error);
-        }
-    }*/
-
-    
-
-    Ok(())
-}
-
-/*
-#[async_std::main]
-async fn main() -> Result<()> {
-    // Check if database repository exists, if not exit with an error
-    match REPO.set(TuringFeeds::new().await.init().await?) {
-        Ok(_) => (),
-        Err(error) => { eprintln!("{:?}", error); panic!(); }
-    }  
-    
     match TcpListener::bind(ADDRESS).await {
         Ok(listener) => {
             println!("Listening on Address: {}", listener.local_addr()?);
@@ -134,7 +32,8 @@ async fn main() -> Result<()> {
                 task::spawn(async {
                     match handle_client(stream).await {
                         Ok(addr) => {
-                            println!("[TERMINATED] ip({}) port({})", addr.ip(), addr.port())
+                            println!("x[TERMINATED] device[{}:{}]", addr.ip(), addr.port())
+                            // TODO Shutdown TCP connection
                         },
                         Err(error) => {
                             //--eprintln!("{:?}", errors_printable(error).await);
@@ -148,9 +47,137 @@ async fn main() -> Result<()> {
         }
     }
 
+
     Ok(())
-}*/
+}
+
+async fn handle_client(mut stream: TcpStream) -> Result<SocketAddr> {
+    println!("↓[CONNECTED] device[{}]", stream.peer_addr()?);
+    let mut header: [u8; 8] = [0; 8];
+
+    let mut buffer = [0; BUFFER_CAPACITY];
+    let mut container_buffer: Vec<u8> = Vec::new();
+    let mut bytes_read: usize;
+
+    stream.read(&mut header).await?;
+    //Get the length of the data first
+    let stream_byte_size = usize::from_le_bytes(header);
+    let mut current_buffer_size = 0_usize;
+    
+    loop {
+        //check the buffer size is not more that 16MB in size to avoid DoS attack by using huge memory
+        if container_buffer.len() > BUFFER_DATA_CAPACITY {
+            return Err(anyhow::Error::new(OpsErrors::BufferCapacityExceeded16Mb))
+        }
+
+        bytes_read = stream.read(&mut buffer).await?;
+
+        if bytes_read == 0 {
+            // Terminate the stream if the client terminates the connection by sending 0 bytes
+            return Ok(stream.peer_addr()?);
+        }
+
+        // Add the new buffer length to the current buffer size
+        current_buffer_size += buffer[..bytes_read].len();
+
+        if current_buffer_size == stream_byte_size {
+            // Ensure that the data is appended before being deserialized by bincode
+            container_buffer.append(&mut buffer[..bytes_read].to_owned());
+            dbg!("ZERO BUFFER");
+            dbg!(&container_buffer.len());
+            let data = bincode::deserialize::<TuringCommands>(&container_buffer).unwrap();
+            
+            match data {
+                TuringCommands::FieldInsert(inner) => { 
+                    dbg!( std::str::from_utf8(&inner.data).unwrap());
+                 },
+                _ => { dbg!("ELSE COMMAND"); },
+            }
+        }
+        // Append data to buffer
+        container_buffer.append(&mut buffer[..bytes_read].to_owned());
+    }
+}
+
+fn spawn_and_log_error<F>(fut: F) -> task::JoinHandle<()> 
+    where F: Future<Output = Result<()>> + Send + 'static,
+{
+    task::spawn(async move {
+        if let Err(e) = fut.await {
+            eprintln!("{}", e)
+        }
+    })
+}
 /*
+
+async fn accept_loop(addr: impl ToSocketAddrs) -> Result<()> {
+    let listener = TcpListener::bind(addr).await?;
+    let mut incoming = listener.incoming();
+
+    while let Some(stream) = incoming.next().await {
+        let stream = stream?;
+        println!("↓[CONNECTED] device[{}]", stream.peer_addr()?);
+        let handle = task::spawn(connection_loop(stream));
+        
+
+    }
+
+    Ok(())
+}
+
+async fn connection_loop(stream: TcpStream) -> Result<()> {
+    let reader = BufReader::new(&stream);
+    let mut lines = reader.lines();
+
+    let name = match lines.next().await {
+        None => "peer disconnected immediately".to_owned(),
+        Some(line) => line?,
+    };
+
+    println!("name = {:?}", name);
+
+    while let Some(line) = lines.next().await {
+        let line = line?;
+        let (dest, msg) = match line.find(':') {
+            None => continue,
+            Some(idx) => (&line[..idx], line[idx + 1 ..].trim()),
+        };
+
+        let dest: Vec<String> = dest.split(",").map(|name| name.trim().to_string()).collect();
+        let msg: String = msg.to_string();
+    }
+
+    Ok(())
+}
+
+*/
+
+/*
+async fn repo_commands(command: RepoCommands) -> OpsOutcome {
+    // Return a DbOps::EncounteredErrors
+    match command {
+        RepoCommands::SuperUser(target) => {
+            match superuser_commands(target).await {
+                Ok(DbOps::Created) => OpsOutcome::Success(None),
+                Ok(DbOps::RepoDeleted) => OpsOutcome::Success(None),
+                Ok(DbOps::DbIntegrityConsistent) => OpsOutcome::Success(None),
+                Ok(DbOps::DbIntegrityCorrupted) => 
+                OpsOutcome::Failure(OperationErrors::Integrity(IntegrityErrors::IntegrityCorrupted)),
+                Ok(DbOps::AlreadyExists) => OpsOutcome::Failure(OperationErrors::DbOps(DbOps::AlreadyExists)),
+                Ok(DbOps::DbCreated) => OpsOutcome::Failure(OperationErrors::DbOps(DbOps::DbCreated)),
+                Ok(DbOps::)
+            };
+            OpsOutcome::Failure(OperationErrors::Unspecified)
+            //error_to_client(error).await;
+        },
+        // TODO Make these two enum variants work using privileges
+        RepoCommands::Privileged(_) => OpsOutcome::Failure(OperationErrors::Unspecified),
+        RepoCommands::UnPrivileged(_) => OpsOutcome::Failure(OperationErrors::Unspecified),
+    }
+}
+
+
+
 async fn handle_client(mut stream: TcpStream) -> Result<SocketAddr> {
     println!("↓[CONNECTED] device[{}]", stream.peer_addr()?);
     let mut buffer = [0; BUFFER_CAPACITY];
@@ -314,3 +341,59 @@ async fn unprivileged_commands(command: UnprivilegedTuringCommands) -> DbOps {
     }
 }
 */
+
+/*
+
+
+    let insert_data = DocumentMethods{
+        db: "db0".into(),
+        document: "doc0_db0".into(),
+        field: "field_db0".into(),
+        data: vec![16],
+    };
+
+    let insert_data2 = DocumentMethods{
+        db: "db0".into(),
+        document: "doc0_db0".into(),
+        field: "field_db1".into(),
+        data: vec![8],
+    };
+
+    let update_data2 = DocumentMethods{
+        db: "db0".into(),
+        document: "doc0_db0".into(),
+        field: "field_db1".into(),
+        data: vec![64],
+    };
+
+    let tf = TuringFeeds::new();
+    tf.repo_init().await;
+    //dbg!(&tf.repo_create().await);
+    dbg!(&tf.db_create("db3").await);
+    dbg!(&tf.db_list().await);
+    dbg!(&tf.db_read("db0").await);
+    dbg!(&tf.document_create("db0", "doc2_db0").await);
+    dbg!(&tf.document_create("db0", "doc4_db0").await);
+    dbg!(&tf.db_read("db0").await);
+    dbg!(&tf.document_read("db0", "doc1_db0").await);
+    dbg!(&tf.field_insert(insert_data2).await);
+    dbg!(&tf.document_read("db0", "doc0_db0").await);
+
+    let field = turingfeeds_helpers::FieldLite {
+        db: "db0".into(),
+        document: "doc0_db0".into(),
+        field: "field_db1".into(),
+    };
+
+    dbg!(&tf.field_get(field).await);
+
+    let field_to_drop = turingfeeds_helpers::FieldLite {
+        db: "db0".into(),
+        document: "doc0_db0".into(),
+        field: "field_db1".into(),
+    };
+
+    dbg!(&tf.field_drop(field_to_drop.clone()).await);
+    dbg!(&tf.field_get(field_to_drop).await);
+
+    */

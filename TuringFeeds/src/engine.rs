@@ -1,78 +1,66 @@
 use async_std::{
     fs,
-    fs::{DirBuilder, File, OpenOptions, ReadDir},
-    io::{prelude::*, BufReader, ErrorKind, Seek, SeekFrom},
-    net::{TcpListener, TcpStream},
-    path::{PathBuf, Path},
+    fs::{DirBuilder, OpenOptions},
+    io::prelude::*,
+    path::PathBuf,
     sync::{Arc, Mutex},
-    task,
     stream::StreamExt,
 };
 use custom_codes::{DbOps, FileOps};
 use serde::{Deserialize, Serialize};
 use std::{
-    io::Read,
     collections::HashMap,
     hash::{Hash, Hasher},
 };
 use tai64::TAI64N;
 use lazy_static::*;
-use sled::{TransactionResult, Config, IVec};
-use turingfeeds_helpers::{DocumentMethods, FieldLite};
 use anyhow::Result;
-
-use crate::{AccessRights, RandIdentifier, Role};
-use lazy_static::*;
 use evmap::{ReadHandle, WriteHandle};
+
+use turingfeeds_helpers::{TuringCommands, DocumentOnly, FieldNoData, FieldWithData};
 
 #[allow(non_upper_case_globals)]
 static TuringFeedsRepo: &'static str = "TuringFeedsRepo";
 
-/// No need for rights as the user who decrypts the DB has total access
-
-/*
 lazy_static!{
-    static ref DB: (Arc<Mutex<ReadHandle<&'static str, Box<Bar>>>>, Arc<Mutex<WriteHandle<&'static str, Box<Bar>>>>) = {
+    pub static ref DG: (Arc<Mutex<ReadHandle<String, Box<Tdb>>>>, Arc<Mutex<WriteHandle<String, Box<Tdb>>>>) = {
         let (reader, writer) = evmap::new();
 
         (Arc::new(Mutex::new(reader)), Arc::new(Mutex::new(writer)))
     };
 
-    //These are just for convinience
-    static ref READER: Arc<Mutex<ReadHandle<&'static str, Box<Bar>>>> = DB.0.clone();
-    static ref WRITER: Arc<Mutex<WriteHandle<&'static str, Box<Bar>>>> = DB.1.clone();
+    pub static ref REPO: TuringFeeds = {
+
+        TuringFeeds::new()
+    };
 }
-*/
-type EvmapReader = ReadHandle<String, Box<Tdb>>;
-type EvmapWriter = Arc<Mutex<WriteHandle<String, Box<Tdb>>>>;
 
 /// Handle list of databases
 #[derive(Debug)]
 pub struct TuringFeeds {
-    reader: ReadHandle<String, Box<Tdb>>,
+    reader: Arc<Mutex<ReadHandle<String, Box<Tdb>>>>,
     writer: Arc<Mutex<WriteHandle<String, Box<Tdb>>>>,
 }
 
 impl TuringFeeds {
     /// Initialize the structure with default values
-    pub async fn new() -> Self {
-        let dbs: (ReadHandle<String, Box<Tdb>>, WriteHandle<String, Box<Tdb>>) = evmap::new();
-
+    pub fn new() -> Self {
+        let (reader, writer) = evmap::new::<String, Box<Tdb>>();
         Self {
-            reader: dbs.0,
-            writer: Arc::new(Mutex::new(dbs.1)),
+            reader: Arc::new(Mutex::new(reader)),
+            writer: Arc::new(Mutex::new(writer)),
         }
     }     
     /// Check whether the list are empty or not
     pub async fn repo_is_empty(&self) -> bool {
         
-        self.reader.is_empty()
+        self.reader.lock().await.is_empty()
     }
     /// Recursively walk through the Directory
     /// Load all the Directories into memory
     /// Hash and Compare with Persisted Hash to check for corruption
     /// Throw errors if any otherwise    
-    pub async fn repo_init(&mut self) -> &Self{
+    pub async fn repo_init(&self) -> &Self{
         let mut repo_path = PathBuf::new();
         repo_path.push(TuringFeedsRepo);
         repo_path.push("REPO");
@@ -194,7 +182,7 @@ impl TuringFeeds {
 
     /// Add a Database
     pub async fn db_create(&self, db_name: &str) -> Result<DbOps> {
-        if self.reader.contains_key(db_name) == true {
+        if self.reader.lock().await.contains_key(db_name) == true {
             Ok(DbOps::DbAlreadyExists)
         }else {
             let db = Tdb::new().await;
@@ -219,7 +207,7 @@ impl TuringFeeds {
     /// Get list of databases
     pub async fn db_list(&self) -> DbOps {
         let mut db_list: Vec<String> = Vec::new();
-        for (key, _) in &self.reader.read() {
+        for (key, _) in &self.reader.lock().await.read() {
             db_list.push(key.into());
         }
 
@@ -277,7 +265,7 @@ impl TuringFeeds {
     /// Get a Database if it exists. This function is not public and is used by methods in this `impl TuringFeeds` block
     /// to get the documents in a given database
     async fn db_get(&self, db_name: &str) -> Option<Tdb> {
-        match self.reader.get(db_name) {
+        match self.reader.lock().await.get(db_name) {
             Some(value) => { 
                 if let Some(value) = value.iter().next().clone() {
                     Some(*value.clone())//
@@ -331,22 +319,22 @@ impl TuringFeeds {
     ///Handle A Document
     /// 
     /// Create a Document backed by Sled database
-    pub async fn document_create(&self, db_name: &str, document_name: &str) -> Result<DbOps> {
+    pub async fn document_create(&self, values: DocumentOnly) -> Result<DbOps> {
         let mut document_path = PathBuf::new();
         document_path.push(TuringFeedsRepo);
-        document_path.push(db_name);
-        document_path.push(document_name);
+        document_path.push(&values.db);
+        document_path.push(&values.document);
 
-        if let Some(mut db) = self.db_get(db_name).await {
+        if let Some(mut db) = self.db_get(&values.db).await {
             sled::Config::default()
                 .create_new(true)
                 .path(document_path)
                 .open()?;
             
-            db.list.insert(document_name.into(), Document::new().await);
+            db.list.insert(values.document, Document::new().await);
 
-            self.commit(db_name, &db).await?;
-            self.writer.lock().await.update(db_name.into(), Box::new(db));
+            self.commit(&values.db, &db).await?;
+            self.writer.lock().await.update(values.db, Box::new(db));
             self.writer.lock().await.refresh();
 
             Ok(DbOps::DocumentCreated)
@@ -355,9 +343,9 @@ impl TuringFeeds {
         }
     }
     /// Read document fields returning a DbOps::FieldList(String)
-    pub async fn document_read(&self, db_name: &str, document_name: &str) -> DbOps {
-        if let Some(db) = self.db_get(db_name).await {
-            if let Some(document) = db.list.get(document_name) {
+    pub async fn document_read(&self, values: DocumentOnly) -> DbOps {
+        if let Some(db) = self.db_get(&values.db).await {
+            if let Some(document) = db.list.get(&values.document) {
                 let mut fields: Vec<String> = Vec::new();
                 for value in document.list.keys() {
                     fields.push(value.into());
@@ -376,18 +364,18 @@ impl TuringFeeds {
         }
     }
     /// Drop a document
-    pub async fn document_drop(&self, db_name: &str, document_name: &str) -> Result<DbOps> {
-        if let Some(mut db) = self.db_get(db_name).await {
-            if let Some(_) = db.list.get(document_name) {
+    pub async fn document_drop(&self, values: DocumentOnly) -> Result<DbOps> {
+        if let Some(mut db) = self.db_get(&values.db).await {
+            if let Some(_) = db.list.get(&values.document) {
                 let mut document_path = PathBuf::new();
                 document_path.push(TuringFeedsRepo);
-                document_path.push(db_name);
-                document_path.push(document_name);
+                document_path.push(&values.db);
+                document_path.push(&values.document);
 
                 fs::remove_dir_all(document_path).await?;
-                db.list.remove(document_name);
-                self.commit(db_name, &db).await?;
-                self.writer.lock().await.update(db_name.into(), Box::new(db));
+                db.list.remove(&values.document);
+                self.commit(&values.db, &db).await?;
+                self.writer.lock().await.update(values.db, Box::new(db));
                 self.writer.lock().await.refresh();
                 
                 Ok(DbOps::DocumentDropped)
@@ -403,7 +391,7 @@ impl TuringFeeds {
     /// 
     /// CRUDL
     /// Insert a field into a specified document
-    pub async fn field_insert(&self, values: DocumentMethods) -> Result<DbOps> {
+    pub async fn field_insert(&self, values: FieldWithData) -> Result<DbOps> {
 
         if let Some(mut db) = self.db_get(&values.db).await {
             if let Some(document) = db.list.get_mut(&values.document) {
@@ -437,7 +425,7 @@ impl TuringFeeds {
         }
     }
     /// Read the contents of a field
-    pub async fn field_get(&self, values: FieldLite) -> Result<DbOps> {
+    pub async fn field_get(&self, values: FieldNoData) -> Result<DbOps> {
         let db_name = values.db;
         let document_name = values.document;
         let field_name = values.field;
@@ -467,7 +455,7 @@ impl TuringFeeds {
         }
     }
     /// Remove a field from a specific document
-    pub async fn field_drop(&self, values: FieldLite) -> Result<DbOps> {
+    pub async fn field_drop(&self, values: FieldNoData) -> Result<DbOps> {
 
         if let Some(mut db) = self.db_get(&values.db).await {
             if let Some(document) = db.list.get_mut(&values.document) {
@@ -503,7 +491,7 @@ impl TuringFeeds {
         }
     }
     /// Update the contents of a field in a specific document
-    pub async fn field_update(&self, values: DocumentMethods) -> Result<DbOps> {
+    pub async fn field_update(&self, values: FieldWithData) -> Result<DbOps> {
 
         if let Some(mut db) = self.db_get(&values.db).await {
             if let Some(document) = db.list.get_mut(&values.document) {
@@ -569,7 +557,7 @@ impl<T> LogFile<T> where T: std::fmt::Debug {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
-struct Tdb {
+pub struct Tdb {
     datetime: TAI64N,
     list: HashMap<SledDocumentName, Document>,
     //rights: Option<HashMap<UserIdentifier, (Role, AccessRights)>>,

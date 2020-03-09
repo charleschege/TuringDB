@@ -2,13 +2,6 @@ use std::{iter, path::PathBuf};
 
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 
-use turingfeeds_helpers::TuringFeedsError;
-
-pub type Result<T> = std::result::Result<T, TuringFeedsError>;
-
-pub type CorruptionGuard = (PathBuf, u64); // (Path, seahash)
-pub type Blake2hash = String;
-
 #[derive(Debug, PartialEq, Clone)]
 pub struct RandIdentifier;
 

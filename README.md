@@ -2,7 +2,7 @@
 
 TuringFeeds is a simple, pure Rust database that aims to be distributed and scaled horizontally. It aims to be a replacement for SQLite where you don't need a relational database or a schema. 
 
-The database is backed by Sled key-value store.
+The database is backed by Sled key-value store & evmap structure for super fast reads.
 
 #### **Warning** 
 
