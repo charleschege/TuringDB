@@ -5,23 +5,21 @@ use crate::{DocumentOnly, FieldWithData, FieldNoData};
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum TuringCommands {
     /// Initialize the Repository
-    CreateRepo,
-    /// Read databases in a repository
-    RepoRead,
+    RepoCreate,
     /// Delete the Repository
-    DropRepo,
+    RepoDrop,
     /// Create a database
     DbCreate(String),
     /// Read documents in a database
     DbRead(String),
-    /// List contents of a database
+    /// List all databases in a repo
     DbList(String),
     /// Delete a database
-    DropDatabase(String),
+    DbDrop(String),
     /// Create a document
     DocumentCreate(DocumentOnly),
     /// List all fields in a document
-    DocumentList(DocumentOnly),
+    DocumentRead(DocumentOnly),
     /// Delete a document and all its contents
     DocumentDrop(DocumentOnly),
     ///Insert a field into a document
@@ -31,7 +29,7 @@ pub enum TuringCommands {
     /// Remove a particular document
     FieldRemove(FieldNoData),
     /// Updata a document
-    FieldModifyDocument(FieldWithData),
+    FieldModify(FieldWithData),
 }
 
 type Key = String;
