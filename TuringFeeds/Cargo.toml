@@ -3,6 +3,14 @@ name = "turingfeeds"
 version = "1.0.0-beta.1"
 authors = ["Charles Chege <charleschege@protonmail.ch>"]
 edition = "2018"
+description = "Simple Database backed by evmap and sled"
+homepage = "https://github.com/charleschege/TuringFeeds"
+repository = "https://github.com/charleschege/TuringFeeds"
+license = "Apache-2.0"
+keywords = ["database", "sled", "embedded-database"]
+categories = ["database", "embedded"]
+readme = "README.md"
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
