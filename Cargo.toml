@@ -7,7 +7,6 @@ edition = "2018"
 [workspace]
 members = [
 	"TuringFeeds",
-	"ClientTester",
 	"TuringFeedsHelpers",
 ]
 
