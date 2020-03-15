@@ -4,16 +4,16 @@ use async_std::{
     net::{TcpListener, TcpStream, SocketAddr},
     task,
     prelude::*,
-    io::{ErrorKind, BufReader},
-    sync::{Arc, Mutex},
+    io::ErrorKind,
     stream::StreamExt
 };
+use tai64::TAI64N;
 use std::net::Shutdown;
-use custom_codes::{DbOps, FileOps};
+use custom_codes::DbOps;
 use anyhow::Result;
 use sled::Error as SledError;
 
-use turingfeeds::{REPO, READER, WRITER};
+use turingfeeds::{REPO, ErrorLogger, READER, WRITER};
 use turingfeeds_helpers::{TuringCommands, OpsErrors};
 
 const ADDRESS: &str = "127.0.0.1:43434";
@@ -24,10 +24,11 @@ const BUFFER_DATA_CAPACITY: usize = 1024 * 1024 * 16; // Db cannot hold data mor
 
 #[async_std::main]
 async fn main() -> anyhow::Result<()> {
-    REPO.repo_init().await;
 
     match TcpListener::bind(ADDRESS).await {
         Ok(listener) => {
+            REPO.repo_init().await;
+
             println!("Listening on Address: {}", listener.local_addr()?);
             while let Some(stream) = listener.incoming().next().await {
                 let stream = stream?;
@@ -37,14 +38,17 @@ async fn main() -> anyhow::Result<()> {
                             println!("x[TERMINATED] device[{}:{}]", addr.ip(), addr.port())
                         },
                         Err(error) => {
-                            //--eprintln!("{:?}", errors_printable(error).await);
+                            task::spawn(async move {
+                                ErrorLogger::new(error).await;
+                            });
                         },
                     }
                 });
             }
         },
         Err(error) => {
-            panic!(error);
+            eprintln!("[TAI64N::<{:?}>] - [Tdb::<ERROR CONNECTING TO URI `tcp://localhost:43434` >] - [ErrorKind - {:?}]", TAI64N::now(), error.kind());
+            std::process::exit(1)
         }
     }
 
@@ -138,8 +142,8 @@ async fn repo_reponse_transform(values: Result<DbOps>) -> DbOps {
         Err(error) => {
             match get_errors(error).await {
                 EitherOps::IoKind(inner) => {
-                    //if inner == ErrorKind::NotFound { DbOps::RepoNotFound } //TODO Add `RepoNotFound`
-                    if inner == ErrorKind::PermissionDenied { DbOps::RepoWriteDenied } //TODO Add `RepoPermissionDenied`
+                    if inner == ErrorKind::NotFound { DbOps::RepoNotFound }
+                    else if inner == ErrorKind::PermissionDenied { DbOps::PermissionDenied }
                     else if inner == ErrorKind::AlreadyExists { DbOps::RepoAlreadyExists }
                     else { DbOps::EncounteredErrors(format!("REPO_I/O_ERROR_{:?}", inner)) }                         
                 },
@@ -155,8 +159,8 @@ async fn db_reponse_transform(values: Result<DbOps>) -> DbOps {
         Err(error) => {
             match get_errors(error).await {
                 EitherOps::IoKind(inner) => {
-                    //if inner == ErrorKind::NotFound { DbOps::RepoNotFound } //TODO Add `RepoNotFound`
-                    if inner == ErrorKind::PermissionDenied { DbOps::DbPermissionDenied }
+                    if inner == ErrorKind::NotFound { DbOps::DbNotFound }
+                    else if inner == ErrorKind::PermissionDenied { DbOps::PermissionDenied }
                     else if inner == ErrorKind::AlreadyExists { DbOps::DbAlreadyExists }
                     else { DbOps::EncounteredErrors(format!("DB_I/O_ERROR_{:?}", inner)) }                         
                 },
@@ -172,8 +176,8 @@ async fn document_reponse_transform(values: Result<DbOps>) -> DbOps {
         Err(error) => {
             match get_errors(error).await {
                 EitherOps::IoKind(inner) => {
-                    //if inner == ErrorKind::NotFound { DbOps::RepoNotFound } //TODO Add `RepoNotFound`
-                    if inner == ErrorKind::PermissionDenied { DbOps::DocWriteDenied } // TODO change to DocPermissionDenied
+                    if inner == ErrorKind::NotFound { DbOps::DocumentNotFound }
+                    else if inner == ErrorKind::PermissionDenied { DbOps::PermissionDenied }
                     else if inner == ErrorKind::AlreadyExists { DbOps::DocumentAlreadyExists }
                     else { DbOps::EncounteredErrors(format!("DOCUMENT_I/O_ERROR_{:?}", inner)) }                         
                 },
@@ -191,8 +195,8 @@ async fn field_reponse_transform(values: Result<DbOps>) -> DbOps {
         Err(error) => {
             match get_errors(error).await {
                 EitherOps::IoKind(inner) => {
-                    //if inner == ErrorKind::NotFound { DbOps::RepoNotFound } //TODO Add `RepoNotFound`
-                    if inner == ErrorKind::PermissionDenied { DbOps::FieldWriteDenied } // TODO change to DocPermissionDenied
+                    if inner == ErrorKind::NotFound { DbOps::FieldNotFound }
+                    else if inner == ErrorKind::PermissionDenied { DbOps::PermissionDenied }
                     else if inner == ErrorKind::AlreadyExists { DbOps::FieldAlreadyExists }
                     else { DbOps::EncounteredErrors(format!("FIELD_I/O_ERROR_{:?}", inner)) }                         
                 },
@@ -216,7 +220,7 @@ async fn process_command(data: TuringCommands) -> DbOps {
         TuringCommands::DbRead(db_options) => {
             REPO.db_read(&db_options).await
         },
-        TuringCommands::DbList(db_options) => { //TODO remove db_options from enum variant as it is useless
+        TuringCommands::DbList => {
             REPO.db_list().await
         },
         TuringCommands::DbDrop(db_options) => {
@@ -244,14 +248,4 @@ async fn process_command(data: TuringCommands) -> DbOps {
             field_reponse_transform(REPO.field_drop(field_options).await).await
         },
     }
-}
-
-fn spawn_and_log_error<F>(fut: F) -> task::JoinHandle<()> 
-    where F: Future<Output = Result<()>> + Send + 'static,
-{
-    task::spawn(async move {
-        if let Err(e) = fut.await {
-            eprintln!("{}", e)
-        }
-    })
 }

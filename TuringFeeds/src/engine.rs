@@ -165,18 +165,11 @@ impl TuringFeeds {
         repo_path.push(TuringFeedsRepo);
 
         fs::remove_dir_all(repo_path).await?;
+        self.writer.lock().await.purge();
+        self.writer.lock().await.refresh();
 
         Ok(DbOps::RepoDropped)
     }
-    // TODO DB - CRUDL
-    // TODO DOCUMENT - CRUDL
-    // TODO FIELD - CRUDL
-
-    // DONE! CREATE
-    // TODO GET DATABASE FIELDS --- CHECK
-    // DONE! LIST DATABASES
-    // DONE! DELETE
-
     /// Add a Database
     pub async fn db_create(&self, db_name: &str) -> Result<DbOps> {
         if self.reader.lock().await.contains_key(db_name) == true {
@@ -643,9 +636,6 @@ impl Hash for Document {
         }
     }
 }
-
-// TODO CRUD
-// TODO Sled CRUD
 
 impl Document {
     async fn new() -> Self {

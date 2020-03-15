@@ -13,7 +13,7 @@ pub enum TuringCommands {
     /// Read documents in a database
     DbRead(String),
     /// List all databases in a repo
-    DbList(String),
+    DbList,
     /// Delete a database
     DbDrop(String),
     /// Create a document

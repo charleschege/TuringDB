@@ -2,9 +2,9 @@
 # It is not intended for manual editing.
 [[package]]
 name = "anyhow"
-version = "1.0.26"
+version = "1.0.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7825f6833612eb2414095684fcf6c635becf3ce97fe48cf6421321e93bfbd53c"
+checksum = "013a6e0a2cbe3d20f9c60b65458f7a7f7a5e636c5d0f45a5a6aee5d4b1f01785"
 
 [[package]]
 name = "async-attributes"
@@ -174,9 +174,9 @@ dependencies = [
 
 [[package]]
 name = "custom_codes"
-version = "1.2.9"
+version = "1.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a1308b1046404b92b59a6ea70c3374064978fab6ec86b77ff11e2a754b010e0"
+checksum = "55bffa0796a2c5ea9ac4d80f16cf3655051b67644db08d1eaff8b68e4d07c370"
 dependencies = [
  "serde",
 ]
@@ -642,7 +642,7 @@ checksum = "5524fca64df27cd1725fd5f67e09d8dddccc832ca46767d448bea565b899adf8"
 
 [[package]]
 name = "turingfeeds"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "anyhow",
  "async-std",
@@ -662,8 +662,11 @@ dependencies = [
 
 [[package]]
 name = "turingfeeds-helpers"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
+ "anyhow",
+ "async-std",
+ "bincode",
  "custom_codes",
  "serde",
 ]

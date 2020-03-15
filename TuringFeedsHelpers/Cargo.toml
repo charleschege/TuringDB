@@ -1,6 +1,6 @@
 [package]
 name = "turingfeeds-helpers"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 authors = ["Charles Chege <charleschege@protonmail.ch>"]
 edition = "2018"
 
@@ -9,3 +9,6 @@ edition = "2018"
 [dependencies]
 serde = { version = "1.0.14", features = ["derive"] }
 custom_codes = "1.2.5"
+bincode = "1.2.1"
+anyhow = "1.0.26"
+async-std = { version = "1.5.0", features = ["attributes"] }

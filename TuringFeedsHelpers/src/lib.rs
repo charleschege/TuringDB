@@ -5,4 +5,4 @@ mod errors;
 pub use errors::*;
 
 mod methods;
-pub use methods::{DocumentOnly, FieldNoData, FieldWithData};
+pub use methods::{DocumentOnly, FieldNoData, FieldWithData, RepoBuilder, DbBuilder, DocumentBuilder, FieldBuilder};
