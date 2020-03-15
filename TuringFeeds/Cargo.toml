@@ -22,7 +22,7 @@ custom_codes = "1.2.6"
 timelite = "1.0.4"
 tai64 = { version = "3.1.0", features = ["serde"] }
 serde = { version = "1.0.104", features = ["derive"] }
-turingfeeds-helpers = { path = "../TuringFeedsHelpers" }
+turingfeeds-helpers = "1.0.0-beta.1"
 sled = "0.31.0"
 ron = "0.5.1"
 lazy_static = "1.4.0"

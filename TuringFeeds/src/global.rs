@@ -1,4 +1,4 @@
-use std::{iter, path::PathBuf};
+use std::iter;
 
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 

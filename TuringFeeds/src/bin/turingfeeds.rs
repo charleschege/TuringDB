@@ -13,7 +13,7 @@ use custom_codes::DbOps;
 use anyhow::Result;
 use sled::Error as SledError;
 
-use turingfeeds::{REPO, ErrorLogger, READER, WRITER};
+use turingfeeds::{REPO, ErrorLogger};
 use turingfeeds_helpers::{TuringCommands, OpsErrors};
 
 const ADDRESS: &str = "127.0.0.1:43434";

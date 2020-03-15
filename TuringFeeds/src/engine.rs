@@ -558,32 +558,6 @@ impl TuringFeeds {
     }
 }
 
-#[derive(Debug)]
-struct LogFile<T> {
-    error: Result<T>,
-    timestamp: TAI64N,
-}
-
-impl<T> LogFile<T> where T: std::fmt::Debug {
-    ///Write to logger file
-    async fn log_error_to_file(&self, error: T) -> Result<()> {
-        let mut log_file_path = PathBuf::new();
-        log_file_path.push(TuringFeedsRepo);
-        log_file_path.push("errors.log");
-
-        let mut file = OpenOptions::new()
-            .create(false)
-            .read(false)
-            .append(true)
-            .open(log_file_path)
-            .await?;
-        let error_customized = format!("[TAI64N - {:?}] <-> {:?}", TAI64N::now(), error);
-
-        file.write_all(&error_customized.into_bytes()).await?;
-        Ok(file.sync_all().await?)
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct Tdb {
     datetime: TAI64N,
