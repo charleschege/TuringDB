@@ -8,11 +8,9 @@ edition = "2018"
 members = [
 	"TuringFeeds",
 	"TuringFeedsHelpers",
+	"TuringFeedsServer",
 ]
 
 [[bin]]
-name = "turingfeeds"
-path = "TuringFeeds/src/bin/turingfeeds.rs"
-
-[dependencies]
-async-std = { version = "1.5.0", features = ["attributes"] }
+name = "turingfeeds-server"
+path = "TuringFeedsServer/src/bin/server.rs"
