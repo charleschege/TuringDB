@@ -696,9 +696,10 @@ dependencies = [
 [[package]]
 name = "turingfeeds-repo"
 version = "1.0.0-beta.1"
-dependencies = [
- "async-std",
-]
+
+[[package]]
+name = "turingfeeds-server"
+version = "0.1.0"
 
 [[package]]
 name = "unicode-xid"

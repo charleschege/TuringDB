@@ -1,9 +1,29 @@
 [package]
 name = "turingfeeds-server"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 authors = ["Charles Chege <charleschege@protonmail.ch>"]
 edition = "2018"
+description = "Simple Database backed by evmap and sled with a server"
+homepage = "https://github.com/charleschege/TuringFeeds"
+repository = "https://github.com/charleschege/TuringFeeds"
+license = "Apache-2.0"
+keywords = ["database", "sled", "embedded-database"]
+categories = ["database", "embedded"]
+readme = "README.md"
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+bincode = "1.2.1"
+custom_codes = "2.0.2"
+tai64 = { version = "3.1.0", features = ["serde"] }
+serde = { version = "1.0.110", features = ["derive"] }
+turingfeeds-helpers = "1.0.0-beta.1"
+sled = "0.31.0"
+lazy_static = "1.4.0"
+evmap = "10.0.2"
+anyhow = "1.0.31"
+yansi = "0.5.0"
+smol = "0.1.10"
+piper = "0.1.2"
