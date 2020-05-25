@@ -1,5 +1,5 @@
 [package]
-name = "TuringFeedsServer"
+name = "turingfeeds-server"
 version = "0.1.0"
 authors = ["Charles Chege <charleschege@protonmail.ch>"]
 edition = "2018"
