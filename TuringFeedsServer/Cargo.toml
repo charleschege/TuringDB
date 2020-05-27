@@ -27,3 +27,9 @@ anyhow = "1.0.31"
 yansi = "0.5.0"
 smol = "0.1.10"
 piper = "0.1.2"
+simple-mutex = "1.1.2"
+simple-signal = "1.1.1"
+
+[[bin]]
+name = "turingfeeds-server"
+path = "src/server.rs"

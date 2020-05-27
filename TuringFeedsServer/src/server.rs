@@ -1,8 +1,13 @@
 #![forbid(unsafe_code)]
 use tai64::TAI64N;
-use std::net::Shutdown;
+use std::{
+    net::Shutdown,
+    sync::atomic::{AtomicBool, Ordering},
+    sync::Arc,
+};
 use custom_codes::DbOps;
 use anyhow::Result;
+use simple_signal::{self, Signal};
 
 const ADDRESS: &str = "127.0.0.1:43434";
 const BUFFER_CAPACITY: usize = 64 * 1024; //16Kb
@@ -10,18 +15,28 @@ const BUFFER_DATA_CAPACITY: usize = 1024 * 1024 * 16; // Db cannot hold data mor
 
 // [TAI64N::<{:?}>] - [Tdb::<ERROR CONNECTING TO URI `tcp://localhost:43434` >] - [ErrorKind - {:?}]", TAI64N::now(), error.kind());
 
-//fn main() -> anyhow::Result<()> {
-fn main() {
+fn main() -> anyhow::Result<()> {
     /// 1. ENABLE LISTENING FOR SIGNIT and other SIGNALS OVER CTRL-C AND NETWORKED SIGNALS OVER 4340
     /// 2. ENABLE RECORDING OF UNDERGOING OPERATIONS
     /// 3. E BIND TO ADDRESS
     /// 4. ENABLE TERMINATING OF CONNECTIONS FROM CLIENTS
     /// 5. LOGGING OF ERRORS
-    let x = 0;
 
+    let sigterm = Arc::new(AtomicBool::new(true));
+    let sigterm_listener = Arc::clone(&sigterm);
     
+    simple_signal::set_handler(
+        &[Signal::Int, Signal::Term, Signal::Kill, Signal::Quit],
+        move |_signals| {
+            sigterm_listener.store(false, Ordering::SeqCst);
+    });
 
-    //Ok(())
+    while sigterm.load(Ordering::SeqCst) {
+        println!("Waiting for Ctrl-C...");
+    }
+    println!("Got it! Exiting...");
+
+    Ok(())
 }
 /*
 async fn handle_client(mut stream: TcpStream) -> Result<SocketAddr> {
