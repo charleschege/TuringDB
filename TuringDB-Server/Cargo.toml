@@ -1,5 +1,5 @@
 [package]
-name = "turingfeeds-server"
+name = "turingdb-server"
 version = "1.0.0-beta.1"
 authors = ["Charles Chege <charleschege@protonmail.ch>"]
 edition = "2018"
@@ -32,5 +32,5 @@ simple-signal = "1.1.1"
 quiche = { version = "0.4.0", features = ["boringssl-vendored"] }
 
 [[bin]]
-name = "turingfeeds-server"
+name = "turingdb-server"
 path = "src/server.rs"
