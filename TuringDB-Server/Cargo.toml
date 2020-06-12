@@ -26,11 +26,5 @@ evmap = "10.0.2"
 anyhow = "1.0.31"
 yansi = "0.5.0"
 smol = "0.1.10"
-piper = "0.1.2"
 simple-mutex = "1.1.2"
 simple-signal = "1.1.1"
-quiche = { version = "0.4.0", features = ["boringssl-vendored"] }
-
-[[bin]]
-name = "turingdb-server"
-path = "src/server.rs"

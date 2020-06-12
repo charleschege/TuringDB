@@ -112,15 +112,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cmake"
-version = "0.1.44"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e56268c17a6248366d66d4a47a3381369d068cce8409bb1716ed77ea32163bb"
-dependencies = [
- "cc",
-]
-
-[[package]]
 name = "crc32fast"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -419,12 +410,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb147597cdf94ed43ab7a9038716637d2d1bf2bc571da995d0028dec06bd3018"
 
 [[package]]
-name = "libm"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7d73b3f436185384286bd8098d17ec07c9a7d2388a6599f824d8502b529702a"
-
-[[package]]
 name = "lock_api"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -582,21 +567,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "quiche"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ece7d6dc0b141a74a042dff1a48a7cd29e403cb47d69306c4f65f4043343012"
-dependencies = [
- "cmake",
- "lazy_static",
- "libc",
- "libm",
- "log",
- "ring",
- "winapi",
-]
-
-[[package]]
 name = "quote"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -610,21 +580,6 @@ name = "redox_syscall"
 version = "0.1.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2439c63f3f6139d1b57529d16bc3b8bb855230c8efcc5d3a896c8bea7c3b1e84"
-
-[[package]]
-name = "ring"
-version = "0.16.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ba5a8ec64ee89a76c98c549af81ff14813df09c3e6dc4766c3856da48597a0c"
-dependencies = [
- "cc",
- "lazy_static",
- "libc",
- "spin",
- "untrusted",
- "web-sys",
- "winapi",
-]
 
 [[package]]
 name = "rustc_version"
@@ -767,12 +722,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "spin"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
-
-[[package]]
 name = "syn"
 version = "1.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -793,7 +742,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "turingfeeds"
+name = "turingdb"
 version = "1.0.0-beta.1"
 dependencies = [
  "anyhow",
@@ -808,7 +757,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "turingfeeds-helpers"
+name = "turingdb-helpers"
 version = "1.0.0-beta.1"
 dependencies = [
  "anyhow",
@@ -816,6 +765,29 @@ dependencies = [
  "bincode",
  "custom_codes 1.2.10",
  "serde",
+]
+
+[[package]]
+name = "turingdb-repo"
+version = "1.0.0-beta.1"
+
+[[package]]
+name = "turingdb-server"
+version = "1.0.0-beta.1"
+dependencies = [
+ "anyhow",
+ "bincode",
+ "custom_codes 2.0.2",
+ "evmap",
+ "lazy_static",
+ "serde",
+ "simple-mutex",
+ "simple-signal",
+ "sled",
+ "smol",
+ "tai64",
+ "turingfeeds-helpers",
+ "yansi",
 ]
 
 [[package]]
@@ -832,41 +804,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "turingfeeds-repo"
-version = "1.0.0-beta.1"
-
-[[package]]
-name = "turingfeeds-server"
-version = "1.0.0-beta.1"
-dependencies = [
- "anyhow",
- "bincode",
- "custom_codes 2.0.2",
- "evmap",
- "lazy_static",
- "piper",
- "quiche",
- "serde",
- "simple-mutex",
- "simple-signal",
- "sled",
- "smol",
- "tai64",
- "turingfeeds-helpers 1.0.0-beta.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "yansi",
-]
-
-[[package]]
 name = "unicode-xid"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "826e7639553986605ec5979c7dd957c7895e93eabed50ab2ffa7f6128a75097c"
-
-[[package]]
-name = "untrusted"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a156c684c91ea7d62626509bce3cb4e1d9ed5c4d978f7b4352658f96a4c26b4a"
 
 [[package]]
 name = "void"

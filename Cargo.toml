@@ -1,16 +1,20 @@
 [package]
-name = "turingfeeds-repo"
+name = "turingdb-repo"
 version = "1.0.0-beta.1"
 authors = ["Charles Chege <charleschege@protonmail.ch>"]
 edition = "2018"
 
 [workspace]
 members = [
-	"TuringFeeds",
-	"TuringFeedsHelpers",
-	"TuringFeedsServer",
+	"TuringDB",
+	"TuringDB-Helpers",
+	"TuringDB-Server",
 ]
 
+[lib]
+name = "turingdb"
+path = "TuringDB/src/lib.rs"
+
 [[bin]]
-name = "turingfeeds-server"
-path = "TuringFeedsServer/src/bin/server.rs"
+name = "turingdb-server"
+path = "TuringDB-Server/src/main.rs"
