@@ -2,20 +2,111 @@ use custom_codes::{DbOps, FileOps};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    hash::{Hash, Hasher},
+    fs::{DirBuilder, OpenOptions, self},
+    path::{Path, PathBuf},
 };
 use tai64::TAI64N;
-use lazy_static::*;
 use anyhow::Result;
-use evmap::{ReadHandle, WriteHandle};
-
-use turingfeeds_helpers::{DocumentOnly, FieldNoData, FieldWithData};
-
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
-pub struct Tdb {
+use async_lock::Lock;
+use smol::{blocking, reader};
+use futures::prelude::*;
+#[derive(Debug, Clone)]
+pub struct TuringEngine<'tf> {
+    dbs: HashMap<&'tf str, Lock<Tdb<'tf>>>,
     datetime: TAI64N,
-    list: HashMap<SledDocumentName, Document>,
+}
+
+
+// READ
+// UPDATE
+// DELETE
+
+impl<'tf> TuringEngine<'tf> {
+    /// Create a new in-memory repo
+    pub async fn new() -> TuringEngine<'tf> {
+        Self {
+            dbs: HashMap::new(),
+            datetime: TAI64N::now(),
+        }
+    }
+    /// Create a repo
+    pub async fn create_repo(&self) -> Result<DbOps> {
+        let path = "TuringFeedsRepo";
+        blocking!(DirBuilder::new()
+            .recursive(false)
+            .create(path))?;
+        
+        self.create_ops_log_file().await?;
+        self.create_errors_log_file().await?;
+
+        Ok(DbOps::RepoCreated)
+    }
+    /// Create a new repository/directory that contains the databases
+    async fn create_ops_log_file(&self) -> Result<()> {
+        blocking!(OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .open("TuringFeedsRepo/ops.log"))?;
+        Ok(())
+    }
+    /// Create a new repository/directory that contains the databases
+    async fn create_errors_log_file(&self) -> Result<()> {
+        blocking!(OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .open("TuringFeedsRepo/errors.log"));
+        
+        Ok(())
+    }
+    /// Check if the repository is empty
+    pub async fn is_empty(&self) -> bool {
+        self.dbs.is_empty()
+    }
+    /*/// Read a repo
+    pub async fn init(&mut self) -> Result<&TuringEngine<'tf>> {
+        let mut repo = blocking!(fs::read_dir("TuringFeedsRepo"))?;
+        while let Some(entry) = repo.next() {
+            let entry = entry?;
+            let inner = entry.file_type()?;
+            let db_path = entry.path().clone().as_path();
+
+            if inner.is_dir() == true {
+                self.load_tdb(db_path).await;
+            }
+        }
+
+        Ok(self)
+    }
+    /// Load the contents of the log file of a database into memory
+    async fn load_tdb(&mut self, db_path: &'tf Path) -> Result<&TuringEngine<'tf>>{               
+        let mut contents: Vec<u8> = Vec::new();
+        if let Some(file_name) = db_path.file_name() {
+            let mut metadata: PathBuf = db_path.into();
+            metadata.push(file_name);
+            metadata.set_extension("log");
+
+            let file = blocking!(OpenOptions::new()
+                .create(false)
+                .read(true)
+                .write(false)
+                .open(metadata))?;
+            let mut file = reader(file);
+
+            file.read(&mut contents).await?;
+            let data = bincode::deserialize::<Tdb>(&contents)?;
+            //self.dbs.insert(file_name.clone().to_string_lossy(), Lock::new(data));
+        }
+
+        Ok(self)
+    }*/
+} 
+
+
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Tdb<'tf> {
+    datetime: TAI64N,
+    list: HashMap<&'tf str, Document<'tf>>,
     //rights: Option<HashMap<UserIdentifier, (Role, AccessRights)>>,
     //database_hash: Blake2hash,
     //secrecy: TuringSecrecy,
@@ -26,60 +117,30 @@ pub struct Tdb {
     //users: vec![] -> """"
 }
 
-impl Hash for Tdb {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.datetime.hash(state);
-
-        for (key, value) in self.list.iter() {
-            key.hash(state);
-            value.hash(state);
-        }
-    }
-}
-
-impl Tdb {
-    async fn new() -> Self {
+impl<'tf> Tdb<'tf> {
+    async fn new() -> Tdb<'tf> {
         Self {
             datetime: TAI64N::now(),
             list: HashMap::new(),
         }
     }
 }
-
-type SledDocumentName = String;
-type FieldName = String;
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
-struct Document {
-    list: HashMap<FieldName, FieldMetadata>,
-    //create_time: TAI64N,
-    //modified_time: TAI64N,
+#[derive(Debug, PartialEq, Eq, Clone)]
+struct Document<'tf> {
+    list: HashMap<&'tf str, FieldMetadata>,
+    create_time: TAI64N,
 }
 
-impl Hash for Document {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        for (key, value) in self.list.iter() {
-            key.hash(state);
-            value.hash(state);
-        }
+impl<'tf> Document<'tf> {
+    async fn new() -> Document<'tf> {
+        Self { list: HashMap::new(), create_time: TAI64N::now() }
     }
 }
 
-impl Document {
-    async fn new() -> Self {
-        Self { list: HashMap::new() }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 struct FieldMetadata {  
     create_time: TAI64N,
     modified_time: TAI64N,
-    //data: Vec<u8>, // This cant go to in-memory DB because of size
-    //primary_key: Option<UserDefinedName>,
-    //indexes: Vec<String>,
-    //hash: SeaHashCipher,
-    //structure: Structure,
 }
 
 impl FieldMetadata {
@@ -100,37 +161,4 @@ enum Structure {
     Schemaless,
     Schema,
     Vector,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-enum DocumentRights {
-    /// Create Access
-    C,
-    /// Read Access
-    R,
-    /// Write Access
-    W,
-    /// Delete Access
-    D,
-    /// Forward
-    F,
-    /// Create Read Write Delete Access
-    CRWD,
-    /// Read Write Access
-    RW,
-}
-
-#[allow(dead_code)]
-enum TuringConfig {
-    DefaultCOnfig,
-    WriteACKs,
-}
-// Shows the level of security from the database level to a document level
-#[allow(dead_code)]
-enum TuringSecrecy {
-    DatabaseMode,
-    TableMode,
-    DocumentMode,
-    DefaultMode,
-    InactiveMode,
 }
