@@ -8,6 +8,7 @@ use std::{
 use custom_codes::DbOps;
 use anyhow::Result;
 use simple_signal::{self, Signal};
+use smol::{Async, Task};
 
 const ADDRESS: &str = "127.0.0.1:43434";
 const BUFFER_CAPACITY: usize = 64 * 1024; //16Kb
@@ -27,7 +28,8 @@ fn main() -> anyhow::Result<()> {
     
     simple_signal::set_handler(
         &[Signal::Int, Signal::Term, Signal::Kill, Signal::Quit],
-        move |_signals| {
+        move |signals| {
+            println!("{:?}", signals);
             sigterm_listener.store(false, Ordering::SeqCst);
     });
 

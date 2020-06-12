@@ -29,6 +29,7 @@ smol = "0.1.10"
 piper = "0.1.2"
 simple-mutex = "1.1.2"
 simple-signal = "1.1.1"
+quiche = { version = "0.4.0", features = ["boringssl-vendored"] }
 
 [[bin]]
 name = "turingfeeds-server"
