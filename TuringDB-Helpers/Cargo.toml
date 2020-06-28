@@ -18,4 +18,3 @@ serde = { version = "1.0.14", features = ["derive"] }
 custom_codes = "1.2.5"
 bincode = "1.2.1"
 anyhow = "1.0.26"
-async-std = { version = "1.5.0", features = ["attributes"] }
