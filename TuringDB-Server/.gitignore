@@ -1,0 +1,4 @@
+/target
+**/*.rs.bk
+/TuringDB_Repo
+**/TuringDB_Repo
