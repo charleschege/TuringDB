@@ -853,7 +853,7 @@ dependencies = [
 
 [[package]]
 name = "turingdb-repo"
-version = "1.0.0-beta.1"
+version = "2.0.0-beta.1"
 dependencies = [
  "anyhow",
  "async-dup",

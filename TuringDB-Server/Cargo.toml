@@ -1,6 +1,6 @@
 [package]
 name = "turingdb-server"
-version = "1.0.0-beta.1"
+version = "2.0.0-beta.1"
 authors = ["Charles Chege <charleschege@protonmail.ch>"]
 edition = "2018"
 description = "Simple Database backed by evmap and sled with a server"
