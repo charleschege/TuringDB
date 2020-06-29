@@ -9,17 +9,12 @@ members = [
 	"TuringDB",
 	"TuringDB-Helpers",
 	"TuringDB-Server",
-	"TuringDB-Client",
 ]
 
 
 [lib]
 name = "turingdb"
 path = "TuringDB/src/lib.rs"
-
-[[bin]]
-name = "turingdb-client"
-path = "TuringDB-Client/src/main.rs"
 
 [[bin]]
 name = "turingdb-server"
@@ -35,11 +30,9 @@ anyhow = "1.0.31"
 smol = "0.1.18"
 async-lock = "1.1.2"
 futures = "0.3.5"
-turingfeeds-helpers = "1.0.0-beta.1"
 signal-msg = "0.2.1"
 async-dup = "1.1.0"
 dashmap = { version = "3.11.4", features = ["serde"] }
-blocking = "0.4.6"
-futures-lite = "0.1.1"
 turingdb-helpers = { path = "./TuringDB-Helpers" }
 async-trait = "0.1.36"
+blocking = "0.4.6"
