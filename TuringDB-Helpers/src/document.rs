@@ -1,4 +1,7 @@
 use serde::{Serialize, Deserialize};
+use anyhow::Result;
+use crate::commands::{from_op, TuringOp};
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DocumentQuery {
     db: String,
@@ -25,5 +28,32 @@ impl DocumentQuery {
     pub async fn own(&self) -> Self {
 
         self.to_owned()
+    }
+    pub async fn create(&self) -> Result<Vec<u8>> {
+        let mut packet = from_op(&TuringOp::DocumentCreate).await.to_vec();
+        packet.extend_from_slice(self.db.as_bytes());
+        
+        let data = bincode::serialize::<Self>(self)?;
+        packet.extend_from_slice(&data);
+
+        Ok(packet)
+    }
+    pub async fn list(&self) -> Result<Vec<u8>> {
+        let mut packet = from_op(&TuringOp::DocumentList).await.to_vec();
+        packet.extend_from_slice(self.db.as_bytes());
+
+        let data = bincode::serialize::<Self>(self)?;
+        packet.extend_from_slice(&data);
+
+        Ok(packet)
+    }
+    pub async fn drop(&self) -> Result<Vec<u8>> {
+        let mut packet = from_op(&TuringOp::DocumentDrop).await.to_vec();
+        packet.extend_from_slice(self.db.as_bytes());
+        
+        let data = bincode::serialize::<Self>(self)?;
+        packet.extend_from_slice(&data);
+
+        Ok(packet)
     }
 }

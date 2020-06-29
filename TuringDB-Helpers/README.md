@@ -1,2 +1,2 @@
 #### Helpers for the TuringDB database
-TODO
+`TuringDB-Helpers` are data structures and methods that make it easier to interact with `TuringDB` database server.

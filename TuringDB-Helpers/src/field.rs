@@ -1,4 +1,7 @@
 use serde::{Serialize, Deserialize};
+use anyhow::Result;
+use crate::commands::{from_op, TuringOp};
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FieldQuery {
     db: String,
@@ -39,5 +42,50 @@ impl FieldQuery {
     pub async fn own(&self) -> Self {
 
         self.to_owned()
+    }
+    pub async fn create(&self) -> Result<Vec<u8>> {
+        let mut packet = from_op(&TuringOp::FieldInsert).await.to_vec();
+        packet.extend_from_slice(self.db.as_bytes());
+        
+        let data = bincode::serialize::<Self>(self)?;
+        packet.extend_from_slice(&data);
+
+        Ok(packet)
+    }
+    pub async fn get(&self) -> Result<Vec<u8>> {
+        let mut packet = from_op(&TuringOp::FieldGet).await.to_vec();
+        packet.extend_from_slice(self.db.as_bytes());
+        
+        let data = bincode::serialize::<Self>(self)?;
+        packet.extend_from_slice(&data);
+
+        Ok(packet)
+    }
+    pub async fn list(&self) -> Result<Vec<u8>> {
+        let mut packet = from_op(&TuringOp::FieldList).await.to_vec();
+        packet.extend_from_slice(self.db.as_bytes());
+        
+        let data = bincode::serialize::<Self>(self)?;
+        packet.extend_from_slice(&data);
+
+        Ok(packet)
+    }
+    pub async fn remove(&self) -> Result<Vec<u8>> {
+        let mut packet = from_op(&TuringOp::FieldRemove).await.to_vec();
+        packet.extend_from_slice(self.db.as_bytes());
+        
+        let data = bincode::serialize::<Self>(self)?;
+        packet.extend_from_slice(&data);
+
+        Ok(packet)
+    }
+    pub async fn modify(&self) -> Result<Vec<u8>> {
+        let mut packet = from_op(&TuringOp::FieldModify).await.to_vec();
+        packet.extend_from_slice(self.db.as_bytes());
+        
+        let data = bincode::serialize::<Self>(self)?;
+        packet.extend_from_slice(&data);
+
+        Ok(packet)
     }
 }
