@@ -9,12 +9,17 @@ members = [
 	"TuringDB",
 	"TuringDB-Helpers",
 	"TuringDB-Server",
+	"TuringDB-Client",
 ]
 
 
 [lib]
 name = "turingdb"
 path = "TuringDB/src/lib.rs"
+
+[[bin]]
+name = "turingdb-client"
+path = "TuringDB-Client/src/main.rs"
 
 [[bin]]
 name = "turingdb-server"
