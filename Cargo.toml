@@ -40,3 +40,5 @@ dashmap = { version = "3.11.4", features = ["serde"] }
 timeit = "0.1.2"
 blocking = "0.4.6"
 futures-lite = "0.1.1"
+turingdb-helpers = { path = "./TuringDB-Helpers" }
+async-trait = "0.1.36"

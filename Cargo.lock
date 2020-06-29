@@ -90,6 +90,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c17772156ef2829aadc587461c7753af20b7e8db1529bc66855add962a3b35d3"
 
 [[package]]
+name = "async-trait"
+version = "0.1.36"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a265e3abeffdce30b2e26b7a11b222fe37c6067404001b434101457d0385eb92"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -846,8 +857,9 @@ name = "turingdb-helpers"
 version = "1.0.0-beta.1"
 dependencies = [
  "anyhow",
+ "async-trait",
  "bincode",
- "custom_codes 1.2.10",
+ "custom_codes 2.0.3",
  "serde",
 ]
 
@@ -858,6 +870,7 @@ dependencies = [
  "anyhow",
  "async-dup",
  "async-lock",
+ "async-trait",
  "bincode",
  "blocking",
  "custom_codes 2.0.3",
@@ -872,13 +885,14 @@ dependencies = [
  "smol",
  "tai64",
  "timeit",
+ "turingdb-helpers",
  "turingfeeds-helpers",
  "yansi",
 ]
 
 [[package]]
 name = "turingdb-server"
-version = "1.0.0-beta.1"
+version = "2.0.0-beta.1"
 dependencies = [
  "anyhow",
  "async-dup",
@@ -893,6 +907,7 @@ dependencies = [
  "smol",
  "tai64",
  "turingdb",
+ "turingdb-helpers",
  "yansi",
 ]
 
