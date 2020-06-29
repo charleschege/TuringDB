@@ -19,3 +19,4 @@ custom_codes = "*"
 bincode = "*"
 anyhow = "*"
 async-trait = "0.1.36"
+tai64 = { version = "3.1.0", features = ["serde"] }

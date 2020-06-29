@@ -1,3 +1,5 @@
+use serde::{Serialize, Deserialize};
+use tai64::TAI64N;
 /// Commands to perform on the repo and its contents by the repo owner known as `SuperUser`
 #[derive(Debug, Eq, PartialEq)]
 pub enum TuringOp {    
@@ -30,7 +32,7 @@ pub enum TuringOp {
     /// The command is not supported
     NotSupported,
 }
-
+/// Converts a database operation to a header using the `TuringOp` enum
 pub async fn from_op<'op>(value: &TuringOp) -> &'op [u8] {
     match value {
         &TuringOp::RepoCreate => &[0x00],
@@ -49,7 +51,7 @@ pub async fn from_op<'op>(value: &TuringOp) -> &'op [u8] {
         &TuringOp::NotSupported => &[0xf1]
     }
 }
-
+/// Converts a database operation from a header to `TuringOp` enum variant
 pub async fn to_op<'op>(value: &[u8]) -> TuringOp {
     match value {
         &[0x00] => TuringOp::RepoCreate,
@@ -67,5 +69,42 @@ pub async fn to_op<'op>(value: &[u8]) -> TuringOp {
         &[0x0c] => TuringOp::FieldList,
         &[0xf1] => TuringOp::NotSupported,
         _ => TuringOp::NotSupported,
+    }
+}
+/// Contains the structure of a value represented by a key
+///
+/// `Warning:` This is serialized using bincode so deserialization should be done using same version of bincode
+/// ```
+/// #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+/// pub struct FieldData {
+///     data: Vec<u8>,
+///     created: TAI64N,
+///     modified: TAI64N,
+/// }
+/// ```
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+pub struct FieldData {
+    data: Vec<u8>,
+    created: TAI64N,
+    modified: TAI64N,
+}
+
+impl FieldData {
+    /// Initializes a new `FieldData` struct
+    pub async fn new(value: &[u8]) -> FieldData {
+        let current_time = TAI64N::now();
+
+        Self {
+            data: value.into(),
+            created: current_time,
+            modified: current_time,
+        }
+    }
+    /// Updates a `FieldData` by modifying its time with a new `TAI64N` timestamp
+    pub async fn update(&mut self, value: &[u8]) -> &FieldData {
+        self.data = value.into();
+        self.modified = TAI64N::now();
+
+        self
     }
 }
