@@ -15,6 +15,14 @@ use blocking::unblock;
 
 const REPO_NAME: &'static str = "TuringDB_Repo";
 
+/// This engine handles data all database queries and in-memory keys and sled file locks
+/// #### Structure
+/// ```
+/// #[derive(Debug, Clone)]
+/// pub struct TuringEngine {
+///     dbs: DashMap<OsString, Tdb>, // Repo<DatabaseName, Databases>
+/// }
+/// ```
 #[derive(Debug, Clone)]
 pub struct TuringEngine {
     dbs: DashMap<OsString, Tdb>, // Repo<DatabaseName, Databases>
@@ -38,10 +46,10 @@ impl TuringEngine {
     pub async fn is_empty(&self) -> bool {
         self.dbs.is_empty()
     }
-    ///TODO
-    /// 1. READ THE REPO AND CHECK AGANIST A HMAC FOR TIME AND HASHES
-    /// 5. APPLY TIMESTAMP AND DATABASE OPS TO ops.log file
-    ///---------
+    //TODO
+    // 1. READ THE REPO AND CHECK AGANIST A HMAC FOR TIME AND HASHES
+    // 5. APPLY TIMESTAMP AND DATABASE OPS TO ops.log file
+    //---------
     /// Read a repo
     pub async fn repo_init(&self) -> Result<&TuringEngine> {
         let mut repo = match unblock!(fs::read_dir("TuringDB_Repo")) {
@@ -216,6 +224,8 @@ impl TuringEngine {
             DbOps::DbNotFound
         }
     }
+    /// Flush all dirty I/O buffers from pagecache to disk.
+    /// `RECOMMENDED:` Always use this function whenever you are building a networked server
     pub async fn flush(&self, db_name: &str, doc_name: &str) -> Result<DbOps> {
         if let Some(mut database) = self.dbs.get_mut(&OsString::from(db_name)) {
             if let Some(document) = database.value_mut().list.get_mut(&OsString::from(doc_name)) {
@@ -228,7 +238,6 @@ impl TuringEngine {
             Ok(DbOps::DbNotFound)
         }
     }
-
     /************* FIELDS ************/
     /// List all fields in a document
     pub async fn field_list(&self, db_name: &str, doc_name: &str) -> DbOps {
@@ -411,6 +420,13 @@ impl TuringEngine {
     }
 }
 
+/// #### Contains the list of documents and databases in-memory
+/// ```
+/// #[derive(Debug, Clone)]
+/// struct Tdb {
+///     list: HashMap<OsString, Document>,
+/// }
+///```
 #[derive(Debug, Clone)]
 struct Tdb {
     list: HashMap<OsString, Document>, 
@@ -426,6 +442,7 @@ struct Tdb {
 }
 
 impl Tdb {
+    /// Create a new in-memory database
     async fn new() -> Tdb {
         Self {
             list: HashMap::new(),
@@ -433,12 +450,31 @@ impl Tdb {
     }
 }
 
+/// #### Contains an in-memory representation of a document, with an async lock on sled file descriptor and document keys
+/// ```
+/// #[derive(Debug, Clone)]
+/// struct Document {
+///     fd: Lock<sled::Db>,
+///     keys: Vec<String>
+/// }
+/// ```
 #[derive(Debug, Clone)]
 struct Document {
     fd: Lock<sled::Db>,
     keys: Vec<String>
 }
 
+/// Contains the structure of a value represented by a key
+///
+/// `Warning:` This is serialized using bincode so deserialization should be done using same version of bincode
+/// ```
+/// #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+/// pub struct FieldData {
+///     data: Vec<u8>,
+///     created: TAI64N,
+///     modified: TAI64N,
+/// }
+/// ```
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct FieldData {
     data: Vec<u8>,
@@ -447,6 +483,7 @@ pub struct FieldData {
 }
 
 impl FieldData {
+    /// Initializes a new `FieldData` struct
     pub async fn new(value: &[u8]) -> FieldData {
         let current_time = TAI64N::now();
 
@@ -456,7 +493,7 @@ impl FieldData {
             modified: current_time,
         }
     }
-
+    /// Updates a `FieldData` by modifying its time with a new `TAI64N` timestamp
     pub async fn update(&mut self, value: &[u8]) -> &FieldData {
         self.data = value.into();
         self.modified = TAI64N::now();
