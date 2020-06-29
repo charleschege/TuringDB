@@ -1,6 +1,6 @@
-use serde::Serialize;
-use anyhow::Result;
 use crate::commands::{from_op, TuringOp};
+use anyhow::Result;
+use serde::Serialize;
 
 /// ### Handles all queries releated to fields
 /// ```rust
@@ -72,7 +72,7 @@ impl DocumentQuery {
     pub async fn create(&self) -> Result<Vec<u8>> {
         let mut packet = from_op(&TuringOp::DocumentCreate).await.to_vec();
         packet.extend_from_slice(self.db.as_bytes());
-        
+
         let data = bincode::serialize::<Self>(self)?;
         packet.extend_from_slice(&data);
 
@@ -111,7 +111,7 @@ impl DocumentQuery {
     pub async fn drop(&self) -> Result<Vec<u8>> {
         let mut packet = from_op(&TuringOp::DocumentDrop).await.to_vec();
         packet.extend_from_slice(self.db.as_bytes());
-        
+
         let data = bincode::serialize::<Self>(self)?;
         packet.extend_from_slice(&data);
 

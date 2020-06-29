@@ -1,23 +1,24 @@
-use async_dup::Arc;
-use custom_codes::{DownCastErrors, DbOps};
-use turingdb::TuringEngine;
-use serde::{Serialize, Deserialize};
-use turingdb_helpers::TuringOp;
 use crate::errors::format_error;
+use async_dup::Arc;
+use custom_codes::{DbOps, DownCastErrors};
+use serde::{Deserialize, Serialize};
+use turingdb::TuringEngine;
+use turingdb_helpers::TuringOp;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub (crate) struct FieldQuery {
+pub(crate) struct FieldQuery {
     db: String,
     document: String,
     field: String,
     payload: Option<Vec<u8>>,
 }
 
-
 impl FieldQuery {
     pub async fn list(storage: Arc<TuringEngine>, value: &[u8]) -> DbOps {
         if value.is_empty() == true {
-            return DbOps::EncounteredErrors("[TuringDB::<FieldList>::(ERROR)-GOOD_HEADER_NO_DATA]".to_owned())
+            return DbOps::EncounteredErrors(
+                "[TuringDB::<FieldList>::(ERROR)-GOOD_HEADER_NO_DATA]".to_owned(),
+            );
         }
 
         let deser_document = match bincode::deserialize::<FieldQuery>(value) {
@@ -26,15 +27,23 @@ impl FieldQuery {
         };
 
         match deser_document.payload {
-            Some(_) => return DbOps::EncounteredErrors("[TuringDB::<FieldList>::(ERROR)-QUERY_ARGS_EXCEEDED]".to_owned()),
+            Some(_) => {
+                return DbOps::EncounteredErrors(
+                    "[TuringDB::<FieldList>::(ERROR)-QUERY_ARGS_EXCEEDED]".to_owned(),
+                )
+            }
             None => (),
         };
 
-        storage.field_list(&deser_document.db, &deser_document.document).await
+        storage
+            .field_list(&deser_document.db, &deser_document.document)
+            .await
     }
     pub async fn insert(storage: Arc<TuringEngine>, value: &[u8]) -> DbOps {
         if value.is_empty() == true {
-            return DbOps::EncounteredErrors("[TuringDB::<FieldInsert>::(ERROR)-GOOD_HEADER_NO_DATA]".to_owned())
+            return DbOps::EncounteredErrors(
+                "[TuringDB::<FieldInsert>::(ERROR)-GOOD_HEADER_NO_DATA]".to_owned(),
+            );
         }
 
         let deser_document = match bincode::deserialize::<FieldQuery>(value) {
@@ -44,33 +53,43 @@ impl FieldQuery {
 
         let data_check = match deser_document.payload {
             Some(document) => document,
-            None => return DbOps::EncounteredErrors("[TuringDB::<FieldInsert>::(ERROR)-FIELD_PAYLOAD_NOT_PROVIDED]".to_owned()),
+            None => {
+                return DbOps::EncounteredErrors(
+                    "[TuringDB::<FieldInsert>::(ERROR)-FIELD_PAYLOAD_NOT_PROVIDED]".to_owned(),
+                )
+            }
         };
 
-        match storage.field_insert(
-            &deser_document.db,
-            &deser_document.document,
-            &deser_document.field,
-            &data_check
-        ).await {
+        match storage
+            .field_insert(
+                &deser_document.db,
+                &deser_document.document,
+                &deser_document.field,
+                &data_check,
+            )
+            .await
+        {
             Ok(op_result) => {
-                match storage.flush(&deser_document.db, &deser_document.document).await {
+                match storage
+                    .flush(&deser_document.db, &deser_document.document)
+                    .await
+                {
                     Ok(_) => op_result,
                     Err(e) => DbOps::EncounteredErrors(e.to_string()),
                 }
-            },
-            Err(e) => {
-                match custom_codes::try_downcast(&e) {
-                    DownCastErrors::NotFound => DbOps::RepoNotFound,
-                    DownCastErrors::PermissionDenied => DbOps::PermissionDenied,
-                    _ => format_error(&TuringOp::FieldInsert, &e).await,
-                }
             }
+            Err(e) => match custom_codes::try_downcast(&e) {
+                DownCastErrors::NotFound => DbOps::RepoNotFound,
+                DownCastErrors::PermissionDenied => DbOps::PermissionDenied,
+                _ => format_error(&TuringOp::FieldInsert, &e).await,
+            },
         }
     }
     pub async fn get(storage: Arc<TuringEngine>, value: &[u8]) -> DbOps {
         if value.is_empty() == true {
-            return DbOps::EncounteredErrors("[TuringDB::<FieldGet>::(ERROR)-GOOD_HEADER_NO_DATA]".to_owned())
+            return DbOps::EncounteredErrors(
+                "[TuringDB::<FieldGet>::(ERROR)-GOOD_HEADER_NO_DATA]".to_owned(),
+            );
         }
 
         let deser_document = match bincode::deserialize::<FieldQuery>(value) {
@@ -79,28 +98,35 @@ impl FieldQuery {
         };
 
         match deser_document.payload {
-            Some(_) => return DbOps::EncounteredErrors("[TuringDB::<FieldGet>::(ERROR)-QUERY_ARGS_EXCEEDED]".to_owned()),
-            None => ()
+            Some(_) => {
+                return DbOps::EncounteredErrors(
+                    "[TuringDB::<FieldGet>::(ERROR)-QUERY_ARGS_EXCEEDED]".to_owned(),
+                )
+            }
+            None => (),
         };
 
-        match storage.field_get(
-            &deser_document.db,
-            &deser_document.document,
-            &deser_document.field,
-        ).await {
+        match storage
+            .field_get(
+                &deser_document.db,
+                &deser_document.document,
+                &deser_document.field,
+            )
+            .await
+        {
             Ok(op_result) => op_result,
-            Err(e) => {
-                match custom_codes::try_downcast(&e) {
-                    DownCastErrors::NotFound => DbOps::RepoNotFound,
-                    DownCastErrors::PermissionDenied => DbOps::PermissionDenied,
-                    _ => format_error(&TuringOp::FieldGet, &e).await,
-                }
-            }
+            Err(e) => match custom_codes::try_downcast(&e) {
+                DownCastErrors::NotFound => DbOps::RepoNotFound,
+                DownCastErrors::PermissionDenied => DbOps::PermissionDenied,
+                _ => format_error(&TuringOp::FieldGet, &e).await,
+            },
         }
     }
     pub async fn remove(storage: Arc<TuringEngine>, value: &[u8]) -> DbOps {
         if value.is_empty() == true {
-            return DbOps::EncounteredErrors("[TuringDB::<FieldRemove>::(ERROR)-GOOD_HEADER_NO_DATA]".to_owned())
+            return DbOps::EncounteredErrors(
+                "[TuringDB::<FieldRemove>::(ERROR)-GOOD_HEADER_NO_DATA]".to_owned(),
+            );
         }
 
         let deser_document = match bincode::deserialize::<FieldQuery>(value) {
@@ -109,33 +135,43 @@ impl FieldQuery {
         };
 
         match deser_document.payload {
-            Some(_) => return DbOps::EncounteredErrors("[TuringDB::<FieldRemove>::(ERROR)-QUERY_ARGS_EXCEEDED]".to_owned()),
+            Some(_) => {
+                return DbOps::EncounteredErrors(
+                    "[TuringDB::<FieldRemove>::(ERROR)-QUERY_ARGS_EXCEEDED]".to_owned(),
+                )
+            }
             None => (),
         };
 
-        match storage.field_remove(
-            &deser_document.db,
-            &deser_document.document,
-            &deser_document.field,
-        ).await {
+        match storage
+            .field_remove(
+                &deser_document.db,
+                &deser_document.document,
+                &deser_document.field,
+            )
+            .await
+        {
             Ok(op_result) => {
-                match storage.flush(&deser_document.db, &deser_document.document).await {
+                match storage
+                    .flush(&deser_document.db, &deser_document.document)
+                    .await
+                {
                     Ok(_) => op_result,
                     Err(e) => DbOps::EncounteredErrors(e.to_string()),
                 }
-            },
-            Err(e) => {
-                match custom_codes::try_downcast(&e) {
-                    DownCastErrors::NotFound => DbOps::RepoNotFound,
-                    DownCastErrors::PermissionDenied => DbOps::PermissionDenied,
-                    _ => format_error(&TuringOp::FieldRemove, &e).await,
-                }
             }
+            Err(e) => match custom_codes::try_downcast(&e) {
+                DownCastErrors::NotFound => DbOps::RepoNotFound,
+                DownCastErrors::PermissionDenied => DbOps::PermissionDenied,
+                _ => format_error(&TuringOp::FieldRemove, &e).await,
+            },
         }
     }
     pub async fn modify(storage: Arc<TuringEngine>, value: &[u8]) -> DbOps {
         if value.is_empty() == true {
-            return DbOps::EncounteredErrors("[TuringDB::<FieldModify>::(ERROR)-GOOD_HEADER_NO_DATA]".to_owned())
+            return DbOps::EncounteredErrors(
+                "[TuringDB::<FieldModify>::(ERROR)-GOOD_HEADER_NO_DATA]".to_owned(),
+            );
         }
 
         let deser_document = match bincode::deserialize::<FieldQuery>(value) {
@@ -145,28 +181,36 @@ impl FieldQuery {
 
         let data_check = match deser_document.payload {
             Some(document) => document,
-            None => return DbOps::EncounteredErrors("[TuringDB::<FieldModify>::(ERROR)-FIELD_PAYLOAD_NOT_PROVIDED]".to_owned()),
+            None => {
+                return DbOps::EncounteredErrors(
+                    "[TuringDB::<FieldModify>::(ERROR)-FIELD_PAYLOAD_NOT_PROVIDED]".to_owned(),
+                )
+            }
         };
 
-        match storage.field_modify(
-            &deser_document.db,
-            &deser_document.document,
-            &deser_document.field,
-            &data_check
-        ).await {
+        match storage
+            .field_modify(
+                &deser_document.db,
+                &deser_document.document,
+                &deser_document.field,
+                &data_check,
+            )
+            .await
+        {
             Ok(op_result) => {
-                match storage.flush(&deser_document.db, &deser_document.document).await {
+                match storage
+                    .flush(&deser_document.db, &deser_document.document)
+                    .await
+                {
                     Ok(_) => op_result,
                     Err(e) => DbOps::EncounteredErrors(e.to_string()),
                 }
-            },
-            Err(e) => {
-                match custom_codes::try_downcast(&e) {
-                    DownCastErrors::NotFound => DbOps::RepoNotFound,
-                    DownCastErrors::PermissionDenied => DbOps::PermissionDenied,
-                    _ => format_error(&TuringOp::FieldModify, &e).await,
-                }
             }
+            Err(e) => match custom_codes::try_downcast(&e) {
+                DownCastErrors::NotFound => DbOps::RepoNotFound,
+                DownCastErrors::PermissionDenied => DbOps::PermissionDenied,
+                _ => format_error(&TuringOp::FieldModify, &e).await,
+            },
         }
     }
 }

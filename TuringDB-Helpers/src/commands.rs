@@ -1,8 +1,8 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use tai64::TAI64N;
 /// Commands to perform on the repo and its contents by the repo owner known as `SuperUser`
 #[derive(Debug, Eq, PartialEq)]
-pub enum TuringOp {    
+pub enum TuringOp {
     /// Initialize the Repository
     RepoCreate,
     /// Delete the Repository
@@ -48,7 +48,7 @@ pub async fn from_op<'op>(value: &TuringOp) -> &'op [u8] {
         &TuringOp::FieldRemove => &[0x0a],
         &TuringOp::FieldModify => &[0x0b],
         &TuringOp::FieldList => &[0x0c],
-        &TuringOp::NotSupported => &[0xf1]
+        &TuringOp::NotSupported => &[0xf1],
     }
 }
 /// Converts a database operation from a header to `TuringOp` enum variant

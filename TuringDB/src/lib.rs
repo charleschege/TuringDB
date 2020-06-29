@@ -8,8 +8,8 @@
 //!
 //! This codebase uses `sled` as the underlying key/value store and builds upon that
 //! to provide other functionality like
-//! 
-//! 1. in-memory keys, 
+//!
+//! 1. in-memory keys,
 //! 2. async-locks for increased acid guarantees
 //! 3. Insert operations will fail if a key already exists, use `modify()` method on a key to change its value
 //! 4. in-memory locks to ensure that document locks are not dropped until the application is halted

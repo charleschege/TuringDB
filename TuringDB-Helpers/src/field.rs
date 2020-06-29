@@ -1,6 +1,6 @@
-use serde::Serialize;
-use anyhow::Result;
 use crate::commands::{from_op, TuringOp};
+use anyhow::Result;
+use serde::Serialize;
 
 /// ### Handles all queries releated to fields
 /// ```rust
@@ -20,9 +20,9 @@ pub struct FieldQuery<T> {
     payload: Option<T>,
 }
 
-impl<T> FieldQuery<T> 
-    where
-        T: serde::Serialize
+impl<T> FieldQuery<T>
+where
+    T: serde::Serialize,
 {
     /// ### Initialize a new empty field
     /// #### Usage
@@ -117,7 +117,7 @@ impl<T> FieldQuery<T>
     pub async fn set(&self) -> Result<Vec<u8>> {
         let mut packet = from_op(&TuringOp::FieldInsert).await.to_vec();
         packet.extend_from_slice(self.db.as_bytes());
-        
+
         let data = bincode::serialize::<Self>(self)?;
         packet.extend_from_slice(&data);
 
@@ -138,7 +138,7 @@ impl<T> FieldQuery<T>
     pub async fn get(&self) -> Result<Vec<u8>> {
         let mut packet = from_op(&TuringOp::FieldGet).await.to_vec();
         packet.extend_from_slice(self.db.as_bytes());
-        
+
         let data = bincode::serialize::<Self>(self)?;
         packet.extend_from_slice(&data);
 
@@ -158,7 +158,7 @@ impl<T> FieldQuery<T>
     pub async fn list(&self) -> Result<Vec<u8>> {
         let mut packet = from_op(&TuringOp::FieldList).await.to_vec();
         packet.extend_from_slice(self.db.as_bytes());
-        
+
         let data = bincode::serialize::<Self>(self)?;
         packet.extend_from_slice(&data);
 
@@ -179,7 +179,7 @@ impl<T> FieldQuery<T>
     pub async fn remove(&self) -> Result<Vec<u8>> {
         let mut packet = from_op(&TuringOp::FieldRemove).await.to_vec();
         packet.extend_from_slice(self.db.as_bytes());
-        
+
         let data = bincode::serialize::<Self>(self)?;
         packet.extend_from_slice(&data);
 
@@ -201,7 +201,7 @@ impl<T> FieldQuery<T>
     pub async fn modify(&self) -> Result<Vec<u8>> {
         let mut packet = from_op(&TuringOp::FieldModify).await.to_vec();
         packet.extend_from_slice(self.db.as_bytes());
-        
+
         let data = bincode::serialize::<Self>(self)?;
         packet.extend_from_slice(&data);
 

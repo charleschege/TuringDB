@@ -759,6 +759,7 @@ dependencies = [
  "bincode",
  "custom_codes",
  "serde",
+ "tai64",
 ]
 
 [[package]]

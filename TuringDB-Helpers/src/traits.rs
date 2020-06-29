@@ -7,7 +7,7 @@ pub trait TuringPacket<'tp> {
     /// #### Usage
     /// ```
     /// use crate::TuringPacket;
-    /// 
+    ///
     /// struct Foo;
     ///
     /// impl TuringPacket for Foo {

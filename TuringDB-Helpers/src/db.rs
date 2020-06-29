@@ -48,7 +48,7 @@ impl<'tp> DbQuery {
     ///   .db("db_name").await
     ///   .create().await
     /// ```
-    pub async fn create(&self) ->Vec<u8> {
+    pub async fn create(&self) -> Vec<u8> {
         let mut packet = from_op(&TuringOp::DbCreate).await.to_vec();
         packet.extend_from_slice(self.db.as_bytes());
 
@@ -64,7 +64,7 @@ impl<'tp> DbQuery {
     ///   .db("db_name").await
     ///   .drop().await
     /// ```
-    pub async fn drop(&self) ->Vec<u8> {
+    pub async fn drop(&self) -> Vec<u8> {
         let mut packet = from_op(&TuringOp::DbDrop).await.to_vec();
         packet.extend_from_slice(self.db.as_bytes());
 
@@ -81,7 +81,6 @@ impl<'tp> DbQuery {
     ///   .list().await
     /// ```
     pub async fn list(&self) -> &'tp [u8] {
-        
         from_op(&TuringOp::DbList).await
     }
 }

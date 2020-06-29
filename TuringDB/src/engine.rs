@@ -1,5 +1,6 @@
 use anyhow::Result;
 use async_lock::Lock;
+use blocking::unblock;
 use custom_codes::DbOps;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
@@ -7,11 +8,10 @@ use std::{
     collections::HashMap,
     ffi::OsString,
     fs::{self, DirBuilder},
-    path::PathBuf,
     io::ErrorKind,
+    path::PathBuf,
 };
 use tai64::TAI64N;
-use blocking::unblock;
 
 const REPO_NAME: &'static str = "TuringDB_Repo";
 
@@ -55,10 +55,10 @@ impl TuringEngine {
         let mut repo = match unblock!(fs::read_dir("TuringDB_Repo")) {
             Ok(value) => value,
             Err(e) => {
-                if e.kind() == ErrorKind::NotFound{
-                    return Ok(self)
-                }else {
-                    return Err(anyhow::Error::new(e))
+                if e.kind() == ErrorKind::NotFound {
+                    return Ok(self);
+                } else {
+                    return Err(anyhow::Error::new(e));
                 }
             }
         };
@@ -83,10 +83,13 @@ impl TuringEngine {
                             field_keys.push(String::from_utf8(field_key?.to_vec())?);
                         }
 
-                        current_db.list.insert(document_name, Document {
-                            fd: Lock::new(db),
-                            keys: field_keys,
-                        });
+                        current_db.list.insert(
+                            document_name,
+                            Document {
+                                fd: Lock::new(db),
+                                keys: field_keys,
+                            },
+                        );
                     }
                 }
                 self.dbs.insert(database_name, current_db);
@@ -116,7 +119,7 @@ impl TuringEngine {
     /// Drop the database
     pub async fn db_drop(&self, db_name: &str) -> Result<DbOps> {
         if self.dbs.is_empty() == true {
-            return Ok(DbOps::RepoEmpty)
+            return Ok(DbOps::RepoEmpty);
         }
 
         let mut path: PathBuf = REPO_NAME.into();
@@ -130,7 +133,7 @@ impl TuringEngine {
     /// List all the databases in the repo
     pub async fn db_list(&self) -> DbOps {
         if self.dbs.is_empty() == true {
-            return DbOps::RepoEmpty
+            return DbOps::RepoEmpty;
         }
 
         let mut list: Vec<String> = Vec::new();
@@ -141,7 +144,7 @@ impl TuringEngine {
 
         if list.is_empty() == true {
             DbOps::RepoEmpty
-        }else {
+        } else {
             DbOps::DbList(list)
         }
     }
@@ -150,29 +153,31 @@ impl TuringEngine {
     /// Create a document
     pub async fn doc_create(&self, db_name: &str, doc_name: &str) -> Result<DbOps> {
         if self.dbs.is_empty() == true {
-            return Ok(DbOps::RepoEmpty)
+            return Ok(DbOps::RepoEmpty);
         }
 
         if doc_name.is_empty() == true {
-            return Ok(DbOps::EncounteredErrors("[TuringDB::<DocumentCreate>::(ERROR)-DOCUMENT_NAME_EMPTY]".to_owned()))
-        }    
+            return Ok(DbOps::EncounteredErrors(
+                "[TuringDB::<DocumentCreate>::(ERROR)-DOCUMENT_NAME_EMPTY]".to_owned(),
+            ));
+        }
 
         if let Some(mut database) = self.dbs.get_mut(&OsString::from(db_name)) {
             let mut path: PathBuf = REPO_NAME.into();
             path.push(db_name);
-            path.push(doc_name);    
-            
+            path.push(doc_name);
+
             if let Some(_) = database.list.get_mut(&OsString::from(doc_name)) {
                 Ok(DbOps::DocumentAlreadyExists)
-            }else {
-                database
-                    .value_mut()
-                    .list
-                    .insert(OsString::from(doc_name), Document {
+            } else {
+                database.value_mut().list.insert(
+                    OsString::from(doc_name),
+                    Document {
                         fd: Lock::new(sled::Config::default().create_new(true).path(path).open()?),
                         keys: Vec::new(),
-                    });
-                
+                    },
+                );
+
                 Ok(DbOps::DocumentCreated)
             }
         } else {
@@ -182,7 +187,7 @@ impl TuringEngine {
     /// Drop a document
     pub async fn doc_drop(&self, db_name: &str, doc_name: &str) -> Result<DbOps> {
         if self.dbs.is_empty() == true {
-            return Ok(DbOps::RepoEmpty)
+            return Ok(DbOps::RepoEmpty);
         }
 
         if let Some(mut database) = self.dbs.get_mut(&OsString::from(db_name)) {
@@ -204,7 +209,7 @@ impl TuringEngine {
     /// List all fields in a document
     pub async fn doc_list(&self, db_name: &str) -> DbOps {
         if self.dbs.is_empty() == true {
-            return DbOps::RepoEmpty
+            return DbOps::RepoEmpty;
         }
 
         if let Some(database) = self.dbs.get(&OsString::from(db_name)) {
@@ -217,7 +222,7 @@ impl TuringEngine {
 
             if list.is_empty() == true {
                 DbOps::DbEmpty
-            }else {
+            } else {
                 DbOps::DocumentList(list)
             }
         } else {
@@ -242,16 +247,16 @@ impl TuringEngine {
     /// List all fields in a document
     pub async fn field_list(&self, db_name: &str, doc_name: &str) -> DbOps {
         if self.dbs.is_empty() == true {
-            return DbOps::RepoEmpty
+            return DbOps::RepoEmpty;
         }
 
         if let Some(mut database) = self.dbs.get_mut(&OsString::from(db_name)) {
             if let Some(document) = database.value_mut().list.get_mut(&OsString::from(doc_name)) {
                 if document.keys.is_empty() == true {
                     DbOps::DocumentEmpty
-                }else {
+                } else {
                     DbOps::FieldList(document.keys.to_owned())
-                }                
+                }
             } else {
                 DbOps::DocumentNotFound
             }
@@ -267,17 +272,20 @@ impl TuringEngine {
         field_name: &str,
         data: &[u8],
     ) -> Result<DbOps> {
-
         if self.dbs.is_empty() == true {
-            return Ok(DbOps::RepoEmpty)
+            return Ok(DbOps::RepoEmpty);
         }
 
         if field_name.is_empty() == true {
-            return Ok(DbOps::EncounteredErrors("[TuringDB::<FieldList>::(ERROR)-FIELD_NAME_EMPTY]".to_owned()))
+            return Ok(DbOps::EncounteredErrors(
+                "[TuringDB::<FieldList>::(ERROR)-FIELD_NAME_EMPTY]".to_owned(),
+            ));
         }
 
         if data.is_empty() == true {
-            return Ok(DbOps::EncounteredErrors("[TuringDB::<FieldList>::(ERROR)-DATA_FIELD_EMPTY]".to_owned()))
+            return Ok(DbOps::EncounteredErrors(
+                "[TuringDB::<FieldList>::(ERROR)-DATA_FIELD_EMPTY]".to_owned(),
+            ));
         }
 
         if let Some(mut database) = self.dbs.get_mut(&OsString::from(db_name)) {
@@ -289,9 +297,13 @@ impl TuringEngine {
                     let field_data = bincode::serialize::<FieldData>(&field_data)?;
                     let field_key: Vec<u8> = field_name.to_owned().into_bytes();
 
-                    document.fd.lock().await.transaction::<_, _, sled::Error>(|db| {
-                        Ok(db.insert(field_key.clone(), field_data.clone().to_vec())?)
-                    })?;
+                    document
+                        .fd
+                        .lock()
+                        .await
+                        .transaction::<_, _, sled::Error>(|db| {
+                            Ok(db.insert(field_key.clone(), field_data.clone().to_vec())?)
+                        })?;
 
                     document.fd.lock().await.flush()?;
 
@@ -314,8 +326,8 @@ impl TuringEngine {
         field_name: &str,
     ) -> Result<DbOps> {
         if self.dbs.is_empty() == true {
-            return Ok(DbOps::RepoEmpty)
-        } 
+            return Ok(DbOps::RepoEmpty);
+        }
 
         if let Some(mut database) = self.dbs.get_mut(&OsString::from(db_name)) {
             if let Some(document) = database.value_mut().list.get_mut(&OsString::from(doc_name)) {
@@ -344,16 +356,18 @@ impl TuringEngine {
         field_name: &str,
     ) -> Result<DbOps> {
         if self.dbs.is_empty() == true {
-            return Ok(DbOps::RepoEmpty)
+            return Ok(DbOps::RepoEmpty);
         }
 
         if let Some(mut database) = self.dbs.get_mut(&OsString::from(db_name)) {
             if let Some(document) = database.value_mut().list.get_mut(&OsString::from(doc_name)) {
                 if let Ok(field_index) = document.keys.binary_search(&field_name.into()) {
                     let field_key: Vec<u8> = field_name.to_owned().into_bytes();
-                    let sled_op = document.fd.lock().await.transaction::<_, _, sled::Error>(|db| {
-                        Ok(db.remove(field_key.clone())?)
-                    })?;
+                    let sled_op = document
+                        .fd
+                        .lock()
+                        .await
+                        .transaction::<_, _, sled::Error>(|db| Ok(db.remove(field_key.clone())?))?;
 
                     match sled_op {
                         Some(_) => {
@@ -381,7 +395,7 @@ impl TuringEngine {
         field_value: &[u8],
     ) -> Result<DbOps> {
         if self.dbs.is_empty() == true {
-            return Ok(DbOps::RepoEmpty)
+            return Ok(DbOps::RepoEmpty);
         }
 
         if let Some(mut database) = self.dbs.get_mut(&OsString::from(db_name)) {
@@ -392,14 +406,20 @@ impl TuringEngine {
                     let stored_data;
 
                     let key_exists = document.fd.lock().await.get(field_key_insert)?;
-                    
+
                     match key_exists {
                         Some(data) => {
                             stored_data = data.to_vec();
-                            let mut current_field_data = bincode::deserialize::<FieldData>(&stored_data)?;
+                            let mut current_field_data =
+                                bincode::deserialize::<FieldData>(&stored_data)?;
                             current_field_data.update(field_value).await;
                             let modified_field_data = bincode::serialize(&current_field_data)?;
-                            match document.fd.lock().await.insert(field_key, modified_field_data)? {
+                            match document
+                                .fd
+                                .lock()
+                                .await
+                                .insert(field_key, modified_field_data)?
+                            {
                                 Some(_) => Ok(DbOps::FieldModified),
                                 // FIXME Decide what to do in case the field didnt exist
                                 // Maybe push these to the database logs and alert DB Admin
@@ -429,7 +449,7 @@ impl TuringEngine {
 ///```
 #[derive(Debug, Clone)]
 struct Tdb {
-    list: HashMap<OsString, Document>, 
+    list: HashMap<OsString, Document>,
     //Database<Document, Fileds>
     //rights: Option<HashMap<UserIdentifier, (Role, AccessRights)>>,
     //database_hash: Blake2hash,
@@ -461,7 +481,7 @@ impl Tdb {
 #[derive(Debug, Clone)]
 struct Document {
     fd: Lock<sled::Db>,
-    keys: Vec<String>
+    keys: Vec<String>,
 }
 
 /// Contains the structure of a value represented by a key
