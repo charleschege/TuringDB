@@ -36,7 +36,7 @@ impl FieldQuery {
 
         self
     }
-    pub async fn own(&self, name: &str) -> Self {
+    pub async fn own(&self) -> Self {
 
         self.to_owned()
     }

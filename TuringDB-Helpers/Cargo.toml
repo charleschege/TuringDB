@@ -18,3 +18,4 @@ serde = { version = "*", features = ["derive"] }
 custom_codes = "*"
 bincode = "*"
 anyhow = "*"
+async-trait = "0.1.36"
