@@ -1,7 +1,7 @@
 use turingdb::TuringEngine;
 use async_dup::Arc;
 use custom_codes::{DownCastErrors, DbOps};
-use crate::commands::TuringOp;
+use turingdb_helpers::TuringOp;
 use crate::errors::format_error;
 
 pub (crate) struct RepoQuery;

@@ -6,9 +6,7 @@ use smol::{Async, Task};
 use std::net::{Shutdown, TcpListener, TcpStream, SocketAddr};
 use futures::prelude::*;
 use turingdb::TuringEngine;
-
-mod commands;
-use commands::*;
+use turingdb_helpers::{TuringOp, to_op};
 
 mod repo_query;
 use repo_query::*;

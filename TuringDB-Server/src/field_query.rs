@@ -2,11 +2,8 @@ use async_dup::Arc;
 use custom_codes::{DownCastErrors, DbOps};
 use turingdb::TuringEngine;
 use serde::{Serialize, Deserialize};
-
-use crate::{
-    commands::TuringOp,
-    errors::format_error,
-};
+use turingdb_helpers::TuringOp;
+use crate::errors::format_error;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub (crate) struct FieldQuery {

@@ -2,8 +2,7 @@ use serde::{Serialize, Deserialize};
 use custom_codes::{DbOps, DownCastErrors};
 use async_dup::Arc;
 use turingdb::TuringEngine;
-
-use crate::commands::TuringOp;
+use turingdb_helpers::TuringOp;
 use crate::errors::format_error;
 
 #[derive(Debug, Serialize, Deserialize)]
