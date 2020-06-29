@@ -819,25 +819,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "time"
-version = "0.1.43"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca8a50ef2360fbd1eeb0ecd46795a87a19024eb4b53c5dc916ca1fd95fe62438"
-dependencies = [
- "libc",
- "winapi",
-]
-
-[[package]]
-name = "timeit"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b2942f5edfee7facb569dd9965b649370397d82fe2511383175f15f26eebfa5"
-dependencies = [
- "time",
-]
-
-[[package]]
 name = "turingdb"
 version = "2.0.0-beta.1"
 dependencies = [
@@ -855,6 +836,15 @@ dependencies = [
 [[package]]
 name = "turingdb-client"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bincode",
+ "custom_codes 2.0.3",
+ "futures",
+ "serde",
+ "smol",
+ "turingdb-helpers",
+]
 
 [[package]]
 name = "turingdb-helpers"
@@ -881,17 +871,13 @@ dependencies = [
  "dashmap",
  "futures",
  "futures-lite",
- "lazy_static",
  "serde",
  "signal-msg",
- "simple-mutex",
  "sled",
  "smol",
  "tai64",
- "timeit",
  "turingdb-helpers",
  "turingfeeds-helpers",
- "yansi",
 ]
 
 [[package]]
