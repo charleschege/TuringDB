@@ -13,8 +13,8 @@ The database aims to be:
 3. Be partition tolerant and consistent
 4. Offer real-time push capabilities without polling, inspired by RethinkDB changefeeds
 5. Offer simple joins
-6. Offer distributed capabilities backed by Raft consensus algorithm
-7. Offer multi-cluster queries
+6. Offer optional distributed capabilities backed by Raft consensus algorithm
+7. Offer optional multi-cluster queries
 8. Be small enough to use as embedded database
 9. Be small and fast enough to be used on embedded devices or large servers
 10. Be really fun to use
