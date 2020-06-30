@@ -112,7 +112,7 @@ async fn handle_client(
             handle_response(
                 &mut stream,
                 DbOps::EncounteredErrors(
-                    "[TuringDB::<{:?}>::(ERROR)-BUFFER_CAPACITY_EXCEEDED_16MB]".into(),
+                    "[TuringDB::<GLOBAL>::(ERROR)-BUFFER_CAPACITY_EXCEEDED_16MB]".into(),
                 ),
             )
             .await?;
