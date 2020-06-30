@@ -5,6 +5,14 @@ use serde::{Deserialize, Serialize};
 use turingdb::TuringEngine;
 use turingdb_helpers::TuringOp;
 
+/// Handles database queries
+/// ```rust
+/// #[derive(Debug, Serialize, Deserialize)]
+/// pub(crate) struct DocumentQuery {
+///     db: String,
+///     document: Option<String>,
+/// }
+/// ```
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct DocumentQuery {
     db: String,
@@ -12,6 +20,24 @@ pub(crate) struct DocumentQuery {
 }
 
 impl DocumentQuery {
+    /// ### Create a document in a database
+    ///
+    /// This function also takes an array of bytes `&[u8]` as a parameter;
+    /// This array of bytes must be able to deserialize into a `crate::DocumentQuery` struct  using bincode
+    ///
+    /// #### Usage
+    /// ```rust
+    /// use crate::DocumentQuery;
+    /// use turingdb::TuringEngine;
+    /// 
+    /// let foo = TuringEngine::new();
+    /// foo.repo_init().await;
+    /// // Start an async runtime
+    ///     |- let foo = Arc::new(&foo); // This `Arc` must be from a module supporting async
+    ///     |-  // spawn a task
+    ///             |- let foo = Arc::clone(&foo);
+    ///             |- DocumentQuery::create(&foo, &[data_to_deserialize]).await;
+    /// ```
     pub async fn create(storage: Arc<TuringEngine>, value: &[u8]) -> DbOps {
         if value.is_empty() == true {
             return DbOps::EncounteredErrors(
@@ -43,6 +69,24 @@ impl DocumentQuery {
             },
         }
     }
+    /// ### List all documents in a database
+    ///
+    /// This function also takes an array of bytes `&[u8]` as a parameter;
+    /// This array of bytes must be able to deserialize into a `crate::DocumentQuery` struct  using bincode
+    ///
+    /// #### Usage
+    /// ```rust
+    /// use crate::DocumentQuery;
+    /// use turingdb::TuringEngine;
+    /// 
+    /// let foo = TuringEngine::new();
+    /// foo.repo_init().await;
+    /// // Start an async runtime
+    ///     |- let foo = Arc::new(&foo); // This `Arc` must be from a module supporting async
+    ///     |-  // spawn a task
+    ///             |- let foo = Arc::clone(&foo);
+    ///             |- DocumentQuery::list(&foo, &[data_to_deserialize]).await;
+    /// ```
     pub async fn list(storage: Arc<TuringEngine>, value: &[u8]) -> DbOps {
         if value.is_empty() == true {
             return DbOps::EncounteredErrors(
@@ -66,6 +110,24 @@ impl DocumentQuery {
 
         storage.doc_list(&deser_document.db).await
     }
+    /// ### Drops a document in a database
+    ///
+    /// This function also takes an array of bytes `&[u8]` as a parameter;
+    /// This array of bytes must be able to deserialize into a `crate::DocumentQuery` struct  using bincode
+    ///
+    /// #### Usage
+    /// ```rust
+    /// use crate::DocumentQuery;
+    /// use turingdb::TuringEngine;
+    /// 
+    /// let foo = TuringEngine::new();
+    /// foo.repo_init().await;
+    /// // Start an async runtime
+    ///     |- let foo = Arc::new(&foo); // This `Arc` must be from a module supporting async
+    ///     |-  // spawn a task
+    ///             |- let foo = Arc::clone(&foo);
+    ///             |- DocumentQuery::drop(&foo, &[data_to_deserialize]).await;
+    /// ```
     pub async fn drop(storage: Arc<TuringEngine>, value: &[u8]) -> DbOps {
         if value.is_empty() == true {
             return DbOps::EncounteredErrors(

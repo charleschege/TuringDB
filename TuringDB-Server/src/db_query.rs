@@ -4,13 +4,48 @@ use custom_codes::{DbOps, DownCastErrors};
 use turingdb::TuringEngine;
 use turingdb_helpers::TuringOp;
 
+/// Handles database queries
+/// ```rust
+/// pub(crate) struct DbQuery;
+/// ```
 pub(crate) struct DbQuery;
 
 impl DbQuery {
+    /// ### Gets a list of all databases in a repo
+    /// #### Usage
+    /// ```rust
+    /// use crate::DatabaseQuery;
+    /// use turingdb::TuringEngine;
+    /// 
+    /// let foo = TuringEngine::new();
+    /// foo.repo_init().await;
+    /// // Start an async runtime
+    ///     |- let foo = Arc::new(&foo); // This `Arc` must be from a module supporting async
+    ///     |-  // spawn a task
+    ///             |- let foo = Arc::clone(&foo);
+    ///             |- DatabaseQuery::list(&foo).await;
+    /// ```
     pub async fn list(storage: Arc<TuringEngine>) -> DbOps {
         storage.db_list().await
     }
-
+    /// ### Create a database in a repo
+    ///
+    /// This function also takes an array of bytes `&[u8]` as a parameter;
+    /// This array of bytes must be able to deserialize into a database name `&str` using `std::str::from_utf8(value)`
+    ///
+    /// #### Usage
+    /// ```rust
+    /// use crate::DatabaseQuery;
+    /// use turingdb::TuringEngine;
+    /// 
+    /// let foo = TuringEngine::new();
+    /// foo.repo_init().await;
+    /// // Start an async runtime
+    ///     |- let foo = Arc::new(&foo); // This `Arc` must be from a module supporting async
+    ///     |-  // spawn a task
+    ///             |- let foo = Arc::clone(&foo);
+    ///             |- DatabaseQuery::create(&foo, &[data_to_deserialize]).await;
+    /// ```
     pub async fn create(storage: Arc<TuringEngine>, value: &[u8]) -> DbOps {
         if value.is_empty() == true {
             return DbOps::EncounteredErrors(
@@ -33,6 +68,24 @@ impl DbQuery {
             },
         }
     }
+    /// ### Drop a database in a repo
+    ///
+    /// This function also takes an array of bytes `&[u8]` as a parameter;
+    /// This array of bytes must be able to deserialize into a database name `&str` using `std::str::from_utf8(value)`
+    ///
+    /// #### Usage
+    /// ```rust
+    /// use crate::DatabaseQuery;
+    /// use turingdb::TuringEngine;
+    /// 
+    /// let foo = TuringEngine::new();
+    /// foo.repo_init().await;
+    /// // Start an async runtime
+    ///     |- let foo = Arc::new(&foo); // This `Arc` must be from a module supporting async
+    ///     |-  // spawn a task
+    ///             |- let foo = Arc::clone(&foo);
+    ///             |- DatabaseQuery::create(&foo, &[data_to_deserialize]).await;
+    /// ```
     pub async fn drop(storage: Arc<TuringEngine>, value: &[u8]) -> DbOps {
         if value.is_empty() == true {
             return DbOps::EncounteredErrors(

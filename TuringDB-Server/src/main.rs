@@ -1,4 +1,31 @@
 #![forbid(unsafe_code)]
+#![deny(missing_docs)]
+
+//! TuringDB-Server is a key-value database written using async code and backed by `sled.rs`  embedded key/value store.
+//! This is the server version, the library can be found by searching crates-io for `turingdb`
+//! or checking under the Github repository https://github.com/charleschege/TuringDB/TuringDB/
+//!
+//!
+//! This codebase uses `sled` as the underlying key/value store and builds upon that
+//! to provide other functionality like
+//!
+//! 1. in-memory keys,
+//! 2. async-locks for increased acid guarantees
+//! 3. Insert operations will fail if a key already exists, use `modify()` method on a key to change its value
+//! 4. in-memory locks to ensure that document locks are not dropped until the application is halted
+//!
+//! Some features that are under development include
+//!
+//! 1. Replication
+//! 2. Multi-cluster queries
+//! 3. Changefeeds without polling, inspired by RethinkDB
+//! 4. Running the server as a daemon
+//! 5. Loggin
+//!
+//! To install the server, run `cargo install turingdb-server`
+//! 
+//! To run the server, run `turingdb-server` from a terminal
+
 use anyhow::Result;
 use async_dup::Arc;
 use custom_codes::DbOps;

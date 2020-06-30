@@ -5,6 +5,16 @@ use serde::{Deserialize, Serialize};
 use turingdb::TuringEngine;
 use turingdb_helpers::TuringOp;
 
+/// Handles database queries
+/// ```rust
+/// #[derive(Debug, Serialize, Deserialize)]
+/// pub(crate) struct FieldQuery {
+///     db: String,
+///     document: String,
+///     field: String,
+///     payload: Option<Vec<u8>>,
+/// }
+/// ```
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct FieldQuery {
     db: String,
@@ -14,6 +24,24 @@ pub(crate) struct FieldQuery {
 }
 
 impl FieldQuery {
+    /// ### List all fields in a document
+    ///
+    /// This function also takes an array of bytes `&[u8]` as a parameter;
+    /// This array of bytes must be able to deserialize into a `crate::FieldQuery` struct  using bincode
+    ///
+    /// #### Usage
+    /// ```rust
+    /// use crate::FieldQuery;
+    /// use turingdb::TuringEngine;
+    /// 
+    /// let foo = TuringEngine::new();
+    /// foo.repo_init().await;
+    /// // Start an async runtime
+    ///     |- let foo = Arc::new(&foo); // This `Arc` must be from a module supporting async
+    ///     |-  // spawn a task
+    ///             |- let foo = Arc::clone(&foo);
+    ///             |- FieldQuery::list(&foo, &[data_to_deserialize]).await;
+    /// ```
     pub async fn list(storage: Arc<TuringEngine>, value: &[u8]) -> DbOps {
         if value.is_empty() == true {
             return DbOps::EncounteredErrors(
@@ -39,6 +67,24 @@ impl FieldQuery {
             .field_list(&deser_document.db, &deser_document.document)
             .await
     }
+    /// ### Insert key/value in a document, failing if the key already exists
+    ///
+    /// This function also takes an array of bytes `&[u8]` as a parameter;
+    /// This array of bytes must be able to deserialize into a `crate::FieldQuery` struct  using bincode
+    ///
+    /// #### Usage
+    /// ```rust
+    /// use crate::FieldQuery;
+    /// use turingdb::TuringEngine;
+    /// 
+    /// let foo = TuringEngine::new();
+    /// foo.repo_init().await;
+    /// // Start an async runtime
+    ///     |- let foo = Arc::new(&foo); // This `Arc` must be from a module supporting async
+    ///     |-  // spawn a task
+    ///             |- let foo = Arc::clone(&foo);
+    ///             |- FieldQuery::insert(&foo, &[data_to_deserialize]).await;
+    /// ```
     pub async fn insert(storage: Arc<TuringEngine>, value: &[u8]) -> DbOps {
         if value.is_empty() == true {
             return DbOps::EncounteredErrors(
@@ -85,6 +131,24 @@ impl FieldQuery {
             },
         }
     }
+    /// ### get a field value in a document using its `key`
+    ///
+    /// This function also takes an array of bytes `&[u8]` as a parameter;
+    /// This array of bytes must be able to deserialize into a `crate::FieldQuery` struct  using bincode
+    ///
+    /// #### Usage
+    /// ```rust
+    /// use crate::FieldQuery;
+    /// use turingdb::TuringEngine;
+    /// 
+    /// let foo = TuringEngine::new();
+    /// foo.repo_init().await;
+    /// // Start an async runtime
+    ///     |- let foo = Arc::new(&foo); // This `Arc` must be from a module supporting async
+    ///     |-  // spawn a task
+    ///             |- let foo = Arc::clone(&foo);
+    ///             |- FieldQuery::get(&foo, &[data_to_deserialize]).await;
+    /// ```
     pub async fn get(storage: Arc<TuringEngine>, value: &[u8]) -> DbOps {
         if value.is_empty() == true {
             return DbOps::EncounteredErrors(
@@ -122,6 +186,24 @@ impl FieldQuery {
             },
         }
     }
+    /// ### Remove a field in a document based on its `key`
+    ///
+    /// This function also takes an array of bytes `&[u8]` as a parameter;
+    /// This array of bytes must be able to deserialize into a `crate::FieldQuery` struct  using bincode
+    ///
+    /// #### Usage
+    /// ```rust
+    /// use crate::FieldQuery;
+    /// use turingdb::TuringEngine;
+    /// 
+    /// let foo = TuringEngine::new();
+    /// foo.repo_init().await;
+    /// // Start an async runtime
+    ///     |- let foo = Arc::new(&foo); // This `Arc` must be from a module supporting async
+    ///     |-  // spawn a task
+    ///             |- let foo = Arc::clone(&foo);
+    ///             |- FieldQuery::remove(&foo, &[data_to_deserialize]).await;
+    /// ```
     pub async fn remove(storage: Arc<TuringEngine>, value: &[u8]) -> DbOps {
         if value.is_empty() == true {
             return DbOps::EncounteredErrors(
@@ -167,6 +249,24 @@ impl FieldQuery {
             },
         }
     }
+    /// ### Update the `value` contents all a `key` in a field
+    ///
+    /// This function also takes an array of bytes `&[u8]` as a parameter;
+    /// This array of bytes must be able to deserialize into a `crate::FieldQuery` struct  using bincode
+    ///
+    /// #### Usage
+    /// ```rust
+    /// use crate::FieldQuery;
+    /// use turingdb::TuringEngine;
+    /// 
+    /// let foo = TuringEngine::new();
+    /// foo.repo_init().await;
+    /// // Start an async runtime
+    ///     |- let foo = Arc::new(&foo); // This `Arc` must be from a module supporting async
+    ///     |-  // spawn a task
+    ///             |- let foo = Arc::clone(&foo);
+    ///             |- FieldQuery::modify(&foo, &[data_to_deserialize]).await;
+    /// ```
     pub async fn modify(storage: Arc<TuringEngine>, value: &[u8]) -> DbOps {
         if value.is_empty() == true {
             return DbOps::EncounteredErrors(
