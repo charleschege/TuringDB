@@ -1,6 +1,6 @@
 ## Turing·DB
 
-<img src="TuringDB/Mockups/Logo.svg" alt="Turing·DB Logo" style="zoom:25%;" />
+<img src="https://raw.githubusercontent.com/charleschege/TuringDB/master/Mockups/TuringDB.png" alt="Turing·DB Logo" style="zoom:25%;" />
 
 TuringDB is a database, written in Rust, that aims to be distributed and scaled horizontally. It aims to be a replacement for where you don't need a relational database or a schema. 
 
