@@ -16,7 +16,7 @@ impl DbQuery {
     /// ```rust
     /// use crate::DatabaseQuery;
     /// use turingdb::TuringEngine;
-    /// 
+    ///
     /// let foo = TuringEngine::new();
     /// foo.repo_init().await;
     /// // Start an async runtime
@@ -37,7 +37,7 @@ impl DbQuery {
     /// ```rust
     /// use crate::DatabaseQuery;
     /// use turingdb::TuringEngine;
-    /// 
+    ///
     /// let foo = TuringEngine::new();
     /// foo.repo_init().await;
     /// // Start an async runtime
@@ -77,7 +77,7 @@ impl DbQuery {
     /// ```rust
     /// use crate::DatabaseQuery;
     /// use turingdb::TuringEngine;
-    /// 
+    ///
     /// let foo = TuringEngine::new();
     /// foo.repo_init().await;
     /// // Start an async runtime

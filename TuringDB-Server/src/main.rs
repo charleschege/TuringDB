@@ -23,7 +23,7 @@
 //! 5. Loggin
 //!
 //! To install the server, run `cargo install turingdb-server`
-//! 
+//!
 //! To run the server, run `turingdb-server` from a terminal
 
 use anyhow::Result;

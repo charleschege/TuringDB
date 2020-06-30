@@ -33,7 +33,7 @@ impl FieldQuery {
     /// ```rust
     /// use crate::FieldQuery;
     /// use turingdb::TuringEngine;
-    /// 
+    ///
     /// let foo = TuringEngine::new();
     /// foo.repo_init().await;
     /// // Start an async runtime
@@ -76,7 +76,7 @@ impl FieldQuery {
     /// ```rust
     /// use crate::FieldQuery;
     /// use turingdb::TuringEngine;
-    /// 
+    ///
     /// let foo = TuringEngine::new();
     /// foo.repo_init().await;
     /// // Start an async runtime
@@ -140,7 +140,7 @@ impl FieldQuery {
     /// ```rust
     /// use crate::FieldQuery;
     /// use turingdb::TuringEngine;
-    /// 
+    ///
     /// let foo = TuringEngine::new();
     /// foo.repo_init().await;
     /// // Start an async runtime
@@ -195,7 +195,7 @@ impl FieldQuery {
     /// ```rust
     /// use crate::FieldQuery;
     /// use turingdb::TuringEngine;
-    /// 
+    ///
     /// let foo = TuringEngine::new();
     /// foo.repo_init().await;
     /// // Start an async runtime
@@ -258,7 +258,7 @@ impl FieldQuery {
     /// ```rust
     /// use crate::FieldQuery;
     /// use turingdb::TuringEngine;
-    /// 
+    ///
     /// let foo = TuringEngine::new();
     /// foo.repo_init().await;
     /// // Start an async runtime

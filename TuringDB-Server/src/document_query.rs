@@ -29,7 +29,7 @@ impl DocumentQuery {
     /// ```rust
     /// use crate::DocumentQuery;
     /// use turingdb::TuringEngine;
-    /// 
+    ///
     /// let foo = TuringEngine::new();
     /// foo.repo_init().await;
     /// // Start an async runtime
@@ -78,7 +78,7 @@ impl DocumentQuery {
     /// ```rust
     /// use crate::DocumentQuery;
     /// use turingdb::TuringEngine;
-    /// 
+    ///
     /// let foo = TuringEngine::new();
     /// foo.repo_init().await;
     /// // Start an async runtime
@@ -119,7 +119,7 @@ impl DocumentQuery {
     /// ```rust
     /// use crate::DocumentQuery;
     /// use turingdb::TuringEngine;
-    /// 
+    ///
     /// let foo = TuringEngine::new();
     /// foo.repo_init().await;
     /// // Start an async runtime

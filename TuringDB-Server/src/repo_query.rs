@@ -16,7 +16,7 @@ impl RepoQuery {
     /// ```rust
     /// use crate::RepoQuery;
     /// use turingdb::TuringEngine;
-    /// 
+    ///
     /// let foo = TuringEngine::new();
     /// foo.repo_init().await;
     /// // Start an async runtime
@@ -40,7 +40,7 @@ impl RepoQuery {
     /// ```rust
     /// use crate::RepoQuery;
     /// use turingdb::TuringEngine;
-    /// 
+    ///
     /// let foo = TuringEngine::new();
     /// foo.repo_init().await;
     /// // Start an async runtime
