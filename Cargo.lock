@@ -42,11 +42,11 @@ dependencies = [
 
 [[package]]
 name = "async-lock"
-version = "1.1.2"
+version = "1.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f375939949ac63cfe11de0f407b727605d3100386f09c640ba44ad149f70211e"
+checksum = "142abcf01ff9d47d1e88d7d1515a4af4a940e18668d862754b858abfd949b86c"
 dependencies = [
- "event-listener 1.2.0",
+ "event-listener",
 ]
 
 [[package]]
@@ -88,9 +88,9 @@ dependencies = [
 
 [[package]]
 name = "bincode"
-version = "1.2.1"
+version = "1.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5753e2a71534719bf3f4e57006c3a4f0d2c672a4b676eec84161f763eca87dbf"
+checksum = "f30d3a39baa26f9651f17b375061f3233dde33424a8b72b0dbe93a68a0bc896d"
 dependencies = [
  "byteorder",
  "serde",
@@ -129,9 +129,9 @@ checksum = "24508e28c677875c380c20f4d28124fab6f8ed4ef929a1397d7b1a31e92f1005"
 
 [[package]]
 name = "cc"
-version = "1.0.54"
+version = "1.0.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7bbb73db36c1246e9034e307d0fba23f9a2e251faa47ade70c1bd252220c8311"
+checksum = "77c1f1d60091c1b73e2b1f4560ab419204b178e625fa945ded7b660becd2bd46"
 
 [[package]]
 name = "cfg-if"
@@ -236,21 +236,15 @@ dependencies = [
 
 [[package]]
 name = "event-listener"
-version = "1.2.0"
+version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "043d21a617dda31c36aed31a38f4ebb643a6fa55c2963fd9f0cc1c831e5095d7"
-
-[[package]]
-name = "event-listener"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae3e266baec5d96df9ce33c5a20dba54ca460a16f577c41391203f9415ffd3ec"
+checksum = "05b148ad9bf80edb24098fd1ab4883c7c381e7900c1a38e512fb0586c4501505"
 
 [[package]]
 name = "fastrand"
-version = "1.2.4"
+version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a64b0126b293b050395b37b10489951590ed024c03d7df4f249d219c8ded7cbf"
+checksum = "b90eb1dec02087df472ab9f0db65f27edaa654a746830042688bcc2eaf68090f"
 
 [[package]]
 name = "fs2"
@@ -454,18 +448,18 @@ dependencies = [
 
 [[package]]
 name = "nanoserde"
-version = "0.1.7"
+version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "813e0df2906dd5c51b8fc382a52dd8971912030d7749d5a738da8fe442e361ab"
+checksum = "661ec9c01c8af35963486addb41d0315589c9d97ccbce19a787f058cdd2ff44a"
 dependencies = [
  "nanoserde-derive",
 ]
 
 [[package]]
 name = "nanoserde-derive"
-version = "0.1.4"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c1115b6d6c9cb0776a2403669c9215f9d25dfc3f99ea17208542f6ea42c079d"
+checksum = "34e7f12dbbb6f3182f7100069af2d8eb761699dcf01460ce62e68f8268de99f3"
 
 [[package]]
 name = "num_cpus"
@@ -491,9 +485,9 @@ checksum = "0b631f7e854af39a1739f401cf34a8a013dfe09eac4fa4dba91e9768bd28168d"
 
 [[package]]
 name = "parking"
-version = "1.0.1"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a7fad362df89617628a7508b3e9d588ade1b0ac31aa25de168193ad999c2dd4"
+checksum = "c4029bc3504a62d92e42f30b9095fdef73b8a0b2a06aa41ce2935143b05a1a06"
 
 [[package]]
 name = "parking_lot"
@@ -521,9 +515,9 @@ dependencies = [
 
 [[package]]
 name = "pico-args"
-version = "0.3.2"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a71836ceac43f0349e3bd964f5bb902f7b003916f32a4ad00354dafc447fa8f"
+checksum = "1b1eee8b1f4966c8343d7ca0f5a8452cd35d5610a2e0efbe2a68cae44bef2046"
 
 [[package]]
 name = "pin-project"
@@ -607,18 +601,18 @@ checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 
 [[package]]
 name = "serde"
-version = "1.0.113"
+version = "1.0.114"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6135c78461981c79497158ef777264c51d9d0f4f3fc3a4d22b915900e42dac6a"
+checksum = "5317f7588f0a5078ee60ef675ef96735a1442132dc645eb1d12c018620ed8cd3"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.113"
+version = "1.0.114"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93c5eaa17d0954cb481cdcfffe9d84fcfa7a1a9f2349271e678677be4c26ae31"
+checksum = "2a0be94b04690fbaed37cddffc5c134bf537c8e3329d53e982fe04c374978f8e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -640,7 +634,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "38aabbeafa6f6dead8cebf246fe9fae1f9215c8d29b3a69f93bd62a9e4a3dcd6"
 dependencies = [
- "event-listener 2.0.0",
+ "event-listener",
 ]
 
 [[package]]
@@ -717,9 +711,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "1.0.32"
+version = "1.0.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a994520748611c17d163e81b6c4a4b13d11b7f63884362ab2efac3aa9cf16d00"
+checksum = "e8d5d96e8cbb005d6959f119f773bfaebb5684296108fb32600c00cde305b2cd"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -737,7 +731,24 @@ dependencies = [
 
 [[package]]
 name = "turingdb"
-version = "2.0.0-beta.1"
+version = "2.0.0-beta.2"
+dependencies = [
+ "anyhow",
+ "async-lock",
+ "bincode",
+ "blocking",
+ "custom_codes",
+ "dashmap",
+ "serde",
+ "sled",
+ "tai64",
+]
+
+[[package]]
+name = "turingdb"
+version = "2.0.0-beta.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3fc1afd8e48bcff93aa77cbd51850cf61edb8a63adcdbf44e9c0f89973673926"
 dependencies = [
  "anyhow",
  "async-lock",
@@ -752,7 +763,21 @@ dependencies = [
 
 [[package]]
 name = "turingdb-helpers"
-version = "1.0.0-beta.1"
+version = "2.0.0-beta.2"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bincode",
+ "custom_codes",
+ "serde",
+ "tai64",
+]
+
+[[package]]
+name = "turingdb-helpers"
+version = "2.0.0-beta.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ea6fd709a353a7d41c72800ee4b80e1221311656a4a74a18815031a16dc89fd7"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -780,7 +805,7 @@ dependencies = [
  "sled",
  "smol",
  "tai64",
- "turingdb-helpers",
+ "turingdb-helpers 2.0.0-beta.2",
 ]
 
 [[package]]
@@ -799,16 +824,16 @@ dependencies = [
  "simple-signal",
  "smol",
  "tai64",
- "turingdb",
- "turingdb-helpers",
+ "turingdb 2.0.0-beta.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "turingdb-helpers 2.0.0-beta.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "yansi",
 ]
 
 [[package]]
 name = "unicode-xid"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "826e7639553986605ec5979c7dd957c7895e93eabed50ab2ffa7f6128a75097c"
+checksum = "f7fe0bb3479651439c9112f72b6c505038574c9fbb575ed1bf3b797fa39dd564"
 
 [[package]]
 name = "waker-fn"
@@ -833,9 +858,9 @@ dependencies = [
 
 [[package]]
 name = "winapi"
-version = "0.3.8"
+version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8093091eeb260906a183e6ae1abdba2ef5ef2257a21801128899c3fc699229c6"
+checksum = "5c839a674fcd7a98952e593242ea400abe93992746761e38641405d28b00f419"
 dependencies = [
  "winapi-i686-pc-windows-gnu",
  "winapi-x86_64-pc-windows-gnu",
