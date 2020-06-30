@@ -55,7 +55,7 @@ The database aims to be:
 4. **Edit `Cargo.toml` file**
 
     ```toml
-#[dependencies]
+    #[dependencies]
     turingdb-helpers = #add the latest version here
     bincode = #add the latest version
     async-std = #add latest version here
