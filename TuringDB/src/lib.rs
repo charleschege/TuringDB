@@ -19,6 +19,7 @@
 //! 1. Replication
 //! 2. Multi-cluster queries
 //! 3. Changefeeds without polling, inspired by RethinkDB
+//! 4. JSON support
 //!
 //!
 //! This module contains all the modules for the database engine that you can use to build a database server
