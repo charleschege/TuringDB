@@ -97,7 +97,7 @@ impl DocumentQuery {
 
         Ok(packet)
     }
-    /// ### Creates a new document in a database
+    /// ### Drops document in a database
     /// #### Usage
     /// ```rust
     /// use crate::DocumentQuery;

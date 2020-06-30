@@ -70,15 +70,13 @@ impl<'tp> DbQuery {
 
         packet
     }
-    /// ### Creates a new a database in a repo
+    /// ### List all databases in a repo
     /// #### Usage
     /// ```rust
     /// use crate::DatabaseQuery;
     ///
     /// let mut foo = DatabaseQuery::new().await;
-    /// foo
-    ///   .db("db_name").await
-    ///   .list().await
+    /// foo.list().await
     /// ```
     pub async fn list(&self) -> &'tp [u8] {
         from_op(&TuringOp::DbList).await

@@ -144,7 +144,7 @@ where
 
         Ok(packet)
     }
-    /// ### List all the `values` in a document
+    /// ### List all the `keys` in a document
     /// #### Usage
     /// ```rust
     /// use crate::FieldQuery;
