@@ -29,7 +29,7 @@ where
     /// ```rust
     /// use crate::FieldQuery;
     ///
-    /// FieldQuery::new().await
+    /// FieldQuery::new()
     /// ```
     pub async fn new() -> Self {
         Self {
@@ -44,8 +44,8 @@ where
     /// ```rust
     /// use crate::FieldQuery;
     ///
-    /// let mut foo = FieldQuery::new().await;
-    /// foo.db("db_name").await;
+    /// let mut foo = FieldQuery::new();
+    /// foo.db("db_name");
     /// ```
     pub async fn db(&mut self, name: &str) -> &Self {
         self.db = name.into();
@@ -57,10 +57,10 @@ where
     /// ```rust
     /// use crate::FieldQuery;
     ///
-    /// let mut foo = FieldQuery::new().await;
+    /// let mut foo = FieldQuery::new();
     /// foo
-    ///   .db("db_name").await
-    ///   .document("document_name").await;
+    ///   .db("db_name")
+    ///   .document("document_name");
     /// ```
     pub async fn document(&mut self, name: &str) -> &Self {
         self.document = name.into();
@@ -72,11 +72,11 @@ where
     /// ```rust
     /// use crate::FieldQuery;
     ///
-    /// let mut foo = FieldQuery::new().await;
+    /// let mut foo = FieldQuery::new();
     /// foo
-    ///   .db("db_name").await
-    ///   .document("document_name").await
-    ///   .field("field_name").await;
+    ///   .db("db_name")
+    ///   .document("document_name")
+    ///   .field("field_name");
     /// ```
     pub async fn field(&mut self, name: &str) -> &Self {
         self.field = name.into();
@@ -89,12 +89,12 @@ where
     /// ```rust
     /// use crate::FieldQuery;
     ///
-    /// let mut foo = FieldQuery::new().await;
+    /// let mut foo = FieldQuery::new();
     /// foo
-    ///   .db("db_name").await
-    ///   .document("document_name").await
-    ///   .field("field_name").await
-    ///   .payload("my_data_converted_into_bytes".as_bytes()).await;
+    ///   .db("db_name")
+    ///   .document("document_name")
+    ///   .field("field_name")
+    ///   .payload("my_data_converted_into_bytes".as_bytes());
     /// ```
     pub async fn payload(&mut self, value: T) -> &Self {
         self.payload = Some(value);
@@ -106,16 +106,16 @@ where
     /// ```rust
     /// use crate::FieldQuery;
     ///
-    /// let mut foo = FieldQuery::new().await;
+    /// let mut foo = FieldQuery::new();
     /// foo
-    ///   .db("db_name").await
-    ///   .document("document_name").await
-    ///   .field("field_name").await
-    ///   .payload("my_data_converted_into_bytes".as_bytes()).await
-    ///   .set().await
+    ///   .db("db_name")
+    ///   .document("document_name")
+    ///   .field("field_name")
+    ///   .payload("my_data_converted_into_bytes".as_bytes())
+    ///   .set()
     /// ```
     pub async fn set(&self) -> Result<Vec<u8>> {
-        let mut packet = from_op(&TuringOp::FieldInsert).await.to_vec();
+        let mut packet = from_op(&TuringOp::FieldInsert).to_vec();
         packet.extend_from_slice(self.db.as_bytes());
 
         let data = bincode::serialize::<Self>(self)?;
@@ -128,15 +128,15 @@ where
     /// ```rust
     /// use crate::FieldQuery;
     ///
-    /// let mut foo = FieldQuery::new().await;
+    /// let mut foo = FieldQuery::new();
     /// foo
-    ///   .db("db_name").await
-    ///   .document("document_name").await
-    ///   .field("field_name").await
-    ///   .get().await;
+    ///   .db("db_name")
+    ///   .document("document_name")
+    ///   .field("field_name")
+    ///   .get();
     /// ```
     pub async fn get(&self) -> Result<Vec<u8>> {
-        let mut packet = from_op(&TuringOp::FieldGet).await.to_vec();
+        let mut packet = from_op(&TuringOp::FieldGet).to_vec();
         packet.extend_from_slice(self.db.as_bytes());
 
         let data = bincode::serialize::<Self>(self)?;
@@ -149,14 +149,14 @@ where
     /// ```rust
     /// use crate::FieldQuery;
     ///
-    /// let mut foo = FieldQuery::new().await;
+    /// let mut foo = FieldQuery::new();
     /// foo
-    ///   .db("db_name").await
-    ///   .document("document_name").await
-    ///   .list().await;
+    ///   .db("db_name")
+    ///   .document("document_name")
+    ///   .list();
     /// ```
-    pub async fn list(&self) -> Result<Vec<u8>> {
-        let mut packet = from_op(&TuringOp::FieldList).await.to_vec();
+    pub fn list(&self) -> Result<Vec<u8>> {
+        let mut packet = from_op(&TuringOp::FieldList).to_vec();
         packet.extend_from_slice(self.db.as_bytes());
 
         let data = bincode::serialize::<Self>(self)?;
@@ -169,15 +169,15 @@ where
     /// ```rust
     /// use crate::FieldQuery;
     ///
-    /// let mut foo = FieldQuery::new().await;
+    /// let mut foo = FieldQuery::new();
     /// foo
-    ///   .db("db_name").await
-    ///   .document("document_name").await
-    ///   .field("field_name").await
-    ///   .remove().await;
+    ///   .db("db_name")
+    ///   .document("document_name")
+    ///   .field("field_name")
+    ///   .remove();
     /// ```
-    pub async fn remove(&self) -> Result<Vec<u8>> {
-        let mut packet = from_op(&TuringOp::FieldRemove).await.to_vec();
+    pub fn remove(&self) -> Result<Vec<u8>> {
+        let mut packet = from_op(&TuringOp::FieldRemove).to_vec();
         packet.extend_from_slice(self.db.as_bytes());
 
         let data = bincode::serialize::<Self>(self)?;
@@ -190,16 +190,16 @@ where
     /// ```rust
     /// use crate::FieldQuery;
     ///
-    /// let mut foo = FieldQuery::new().await;
+    /// let mut foo = FieldQuery::new();
     /// foo
-    ///   .db("db_name").await
-    ///   .document("document_name").await
-    ///   .field("field_name").await
-    ///   .payload("my_data_converted_into_bytes".as_bytes()).await
-    ///   .modify().await
+    ///   .db("db_name")
+    ///   .document("document_name")
+    ///   .field("field_name")
+    ///   .payload("my_data_converted_into_bytes".as_bytes())
+    ///   .modify()
     /// ```
-    pub async fn modify(&self) -> Result<Vec<u8>> {
-        let mut packet = from_op(&TuringOp::FieldModify).await.to_vec();
+    pub fn modify(&self) -> Result<Vec<u8>> {
+        let mut packet = from_op(&TuringOp::FieldModify).to_vec();
         packet.extend_from_slice(self.db.as_bytes());
 
         let data = bincode::serialize::<Self>(self)?;

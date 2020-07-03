@@ -132,7 +132,7 @@ async fn handle_client(
         if buffer[..bytes_read].len() < BUFFER_CAPACITY {
             // Ensure that the data is appended before being deserialized by bincode
             container_buffer.append(&mut buffer[..bytes_read].to_owned());
-            let op = to_op(&[container_buffer[0]]).await;
+            let op = to_op(&[container_buffer[0]]);
             let op_result = process_op(&op, storage.clone(), &container_buffer[1..]).await;
             handle_response(&mut stream, op_result).await?;
         }

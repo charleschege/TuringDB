@@ -69,7 +69,7 @@ impl TuringEngine {
 
             if database_entry.file_type()?.is_dir() == true {
                 let mut repo = unblock!(fs::read_dir(&database_entry.path()))?;
-                let mut current_db = Tdb::new().await;
+                let mut current_db = Tdb::new();
 
                 while let Some(document_entry) = repo.next() {
                     let document_entry = document_entry?;
@@ -112,7 +112,7 @@ impl TuringEngine {
 
         unblock!(DirBuilder::new().recursive(false).create(path))?;
 
-        self.dbs.insert(db_name.into(), Tdb::new().await);
+        self.dbs.insert(db_name.into(), Tdb::new());
 
         Ok(DbOps::DbCreated)
     }
@@ -293,7 +293,7 @@ impl TuringEngine {
                 if let Ok(_) = document.keys.binary_search(&field_name.into()) {
                     Ok(DbOps::FieldAlreadyExists)
                 } else {
-                    let field_data = FieldData::new(data).await;
+                    let field_data = FieldData::new(data);
                     let field_data = bincode::serialize::<FieldData>(&field_data)?;
                     let field_key: Vec<u8> = field_name.to_owned().into_bytes();
 
@@ -412,7 +412,7 @@ impl TuringEngine {
                             stored_data = data.to_vec();
                             let mut current_field_data =
                                 bincode::deserialize::<FieldData>(&stored_data)?;
-                            current_field_data.update(field_value).await;
+                            current_field_data.update(field_value);
                             let modified_field_data = bincode::serialize(&current_field_data)?;
                             match document
                                 .fd
@@ -463,7 +463,7 @@ struct Tdb {
 
 impl Tdb {
     /// Create a new in-memory database
-    async fn new() -> Tdb {
+    fn new() -> Tdb {
         Self {
             list: HashMap::new(),
         }
@@ -504,7 +504,7 @@ pub struct FieldData {
 
 impl FieldData {
     /// Initializes a new `FieldData` struct
-    pub async fn new(value: &[u8]) -> FieldData {
+    pub fn new(value: &[u8]) -> FieldData {
         let current_time = TAI64N::now();
 
         Self {
@@ -514,7 +514,7 @@ impl FieldData {
         }
     }
     /// Updates a `FieldData` by modifying its time with a new `TAI64N` timestamp
-    pub async fn update(&mut self, value: &[u8]) -> &FieldData {
+    pub fn update(&mut self, value: &[u8]) -> &FieldData {
         self.data = value.into();
         self.modified = TAI64N::now();
 

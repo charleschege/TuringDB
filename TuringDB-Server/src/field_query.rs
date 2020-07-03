@@ -51,7 +51,7 @@ impl FieldQuery {
 
         let deser_document = match bincode::deserialize::<FieldQuery>(value) {
             Ok(value) => value,
-            Err(e) => return format_error(&TuringOp::FieldList, &anyhow::Error::new(e)).await,
+            Err(e) => return format_error(&TuringOp::FieldList, &anyhow::Error::new(e)),
         };
 
         match deser_document.payload {
@@ -64,8 +64,7 @@ impl FieldQuery {
         };
 
         storage
-            .field_list(&deser_document.db, &deser_document.document)
-            .await
+            .field_list(&deser_document.db, &deser_document.document).await
     }
     /// ### Insert key/value in a document, failing if the key already exists
     ///
@@ -94,7 +93,7 @@ impl FieldQuery {
 
         let deser_document = match bincode::deserialize::<FieldQuery>(value) {
             Ok(value) => value,
-            Err(e) => return format_error(&TuringOp::FieldInsert, &anyhow::Error::new(e)).await,
+            Err(e) => return format_error(&TuringOp::FieldInsert, &anyhow::Error::new(e)),
         };
 
         let data_check = match deser_document.payload {
@@ -127,7 +126,7 @@ impl FieldQuery {
             Err(e) => match custom_codes::try_downcast(&e) {
                 DownCastErrors::NotFound => DbOps::RepoNotFound,
                 DownCastErrors::PermissionDenied => DbOps::PermissionDenied,
-                _ => format_error(&TuringOp::FieldInsert, &e).await,
+                _ => format_error(&TuringOp::FieldInsert, &e),
             },
         }
     }
@@ -158,7 +157,7 @@ impl FieldQuery {
 
         let deser_document = match bincode::deserialize::<FieldQuery>(value) {
             Ok(value) => value,
-            Err(e) => return format_error(&TuringOp::FieldGet, &anyhow::Error::new(e)).await,
+            Err(e) => return format_error(&TuringOp::FieldGet, &anyhow::Error::new(e)),
         };
 
         match deser_document.payload {
@@ -182,7 +181,7 @@ impl FieldQuery {
             Err(e) => match custom_codes::try_downcast(&e) {
                 DownCastErrors::NotFound => DbOps::RepoNotFound,
                 DownCastErrors::PermissionDenied => DbOps::PermissionDenied,
-                _ => format_error(&TuringOp::FieldGet, &e).await,
+                _ => format_error(&TuringOp::FieldGet, &e),
             },
         }
     }
@@ -213,7 +212,7 @@ impl FieldQuery {
 
         let deser_document = match bincode::deserialize::<FieldQuery>(value) {
             Ok(value) => value,
-            Err(e) => return format_error(&TuringOp::FieldRemove, &anyhow::Error::new(e)).await,
+            Err(e) => return format_error(&TuringOp::FieldRemove, &anyhow::Error::new(e)),
         };
 
         match deser_document.payload {
@@ -245,7 +244,7 @@ impl FieldQuery {
             Err(e) => match custom_codes::try_downcast(&e) {
                 DownCastErrors::NotFound => DbOps::RepoNotFound,
                 DownCastErrors::PermissionDenied => DbOps::PermissionDenied,
-                _ => format_error(&TuringOp::FieldRemove, &e).await,
+                _ => format_error(&TuringOp::FieldRemove, &e),
             },
         }
     }
@@ -276,7 +275,7 @@ impl FieldQuery {
 
         let deser_document = match bincode::deserialize::<FieldQuery>(value) {
             Ok(value) => value,
-            Err(e) => return format_error(&TuringOp::FieldModify, &anyhow::Error::new(e)).await,
+            Err(e) => return format_error(&TuringOp::FieldModify, &anyhow::Error::new(e)),
         };
 
         let data_check = match deser_document.payload {
@@ -309,7 +308,7 @@ impl FieldQuery {
             Err(e) => match custom_codes::try_downcast(&e) {
                 DownCastErrors::NotFound => DbOps::RepoNotFound,
                 DownCastErrors::PermissionDenied => DbOps::PermissionDenied,
-                _ => format_error(&TuringOp::FieldModify, &e).await,
+                _ => format_error(&TuringOp::FieldModify, &e),
             },
         }
     }

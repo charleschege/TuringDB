@@ -34,5 +34,4 @@ signal-msg = "0.2.1"
 async-dup = "1.1.0"
 dashmap = { version = "3.11.4", features = ["serde"] }
 turingdb-helpers = { path = "./TuringDB-Helpers" }
-async-trait = "0.1.36"
 blocking = "0.4.6"

@@ -47,7 +47,7 @@ impl DocumentQuery {
 
         let deser_document = match bincode::deserialize::<DocumentQuery>(value) {
             Ok(value) => value,
-            Err(e) => return format_error(&TuringOp::DocumentCreate, &anyhow::Error::new(e)).await,
+            Err(e) => return format_error(&TuringOp::DocumentCreate, &anyhow::Error::new(e)),
         };
 
         let doc_check = match deser_document.document {
@@ -65,7 +65,7 @@ impl DocumentQuery {
                 DownCastErrors::AlreadyExists => DbOps::DocumentAlreadyExists,
                 DownCastErrors::NotFound => DbOps::RepoNotFound,
                 DownCastErrors::PermissionDenied => DbOps::PermissionDenied,
-                _ => format_error(&TuringOp::DocumentCreate, &e).await,
+                _ => format_error(&TuringOp::DocumentCreate, &e),
             },
         }
     }
@@ -96,7 +96,7 @@ impl DocumentQuery {
 
         let deser_document = match bincode::deserialize::<DocumentQuery>(value) {
             Ok(value) => value,
-            Err(e) => return format_error(&TuringOp::DocumentList, &anyhow::Error::new(e)).await,
+            Err(e) => return format_error(&TuringOp::DocumentList, &anyhow::Error::new(e)),
         };
 
         match deser_document.document {
@@ -137,7 +137,7 @@ impl DocumentQuery {
 
         let deser_document = match bincode::deserialize::<DocumentQuery>(value) {
             Ok(value) => value,
-            Err(e) => return format_error(&TuringOp::DocumentDrop, &anyhow::Error::new(e)).await,
+            Err(e) => return format_error(&TuringOp::DocumentDrop, &anyhow::Error::new(e)),
         };
 
         let doc_check = match deser_document.document {
@@ -154,7 +154,7 @@ impl DocumentQuery {
             Err(e) => match custom_codes::try_downcast(&e) {
                 DownCastErrors::NotFound => DbOps::RepoNotFound,
                 DownCastErrors::PermissionDenied => DbOps::PermissionDenied,
-                _ => format_error(&TuringOp::DocumentDrop, &e).await,
+                _ => format_error(&TuringOp::DocumentDrop, &e),
             },
         }
     }

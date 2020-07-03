@@ -18,9 +18,9 @@ impl<'tp> DbQuery {
     /// ```rust
     /// use crate::DatabaseQuery;
     ///
-    /// Database::new().await
+    /// Database::new()
     /// ```
-    pub async fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             db: Default::default(),
         }
@@ -30,10 +30,10 @@ impl<'tp> DbQuery {
     /// ```rust
     /// use crate::DatabaseQuery;
     ///
-    /// let mut foo = Database::new().await;
-    /// foo.db("db_name").await;
+    /// let mut foo = Database::new();
+    /// foo.db("db_name");
     /// ```
-    pub async fn db(&mut self, name: &str) -> &Self {
+    pub fn db(&mut self, name: &str) -> &Self {
         self.db = name.into();
 
         self
@@ -43,13 +43,13 @@ impl<'tp> DbQuery {
     /// ```rust
     /// use crate::DatabaseQuery;
     ///
-    /// let mut foo = DatabaseQuery::new().await;
+    /// let mut foo = DatabaseQuery::new();
     /// foo
-    ///   .db("db_name").await
-    ///   .create().await
+    ///   .db("db_name")
+    ///   .create()
     /// ```
-    pub async fn create(&self) -> Vec<u8> {
-        let mut packet = from_op(&TuringOp::DbCreate).await.to_vec();
+    pub fn create(&self) -> Vec<u8> {
+        let mut packet = from_op(&TuringOp::DbCreate).to_vec();
         packet.extend_from_slice(self.db.as_bytes());
 
         packet
@@ -59,13 +59,13 @@ impl<'tp> DbQuery {
     /// ```rust
     /// use crate::DatabaseQuery;
     ///
-    /// let mut foo = DatabaseQuery::new().await;
+    /// let mut foo = DatabaseQuery::new();
     /// foo
     ///   .db("db_name").await
     ///   .drop().await
     /// ```
-    pub async fn drop(&self) -> Vec<u8> {
-        let mut packet = from_op(&TuringOp::DbDrop).await.to_vec();
+    pub fn drop(&self) -> Vec<u8> {
+        let mut packet = from_op(&TuringOp::DbDrop).to_vec();
         packet.extend_from_slice(self.db.as_bytes());
 
         packet
@@ -75,10 +75,10 @@ impl<'tp> DbQuery {
     /// ```rust
     /// use crate::DatabaseQuery;
     ///
-    /// let mut foo = DatabaseQuery::new().await;
-    /// foo.list().await
+    /// let mut foo = DatabaseQuery::new();
+    /// foo.list()
     /// ```
-    pub async fn list(&self) -> &'tp [u8] {
-        from_op(&TuringOp::DbList).await
+    pub fn list(&self) -> &'tp [u8] {
+        from_op(&TuringOp::DbList)
     }
 }

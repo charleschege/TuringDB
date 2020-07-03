@@ -33,7 +33,7 @@ pub enum TuringOp {
     NotSupported,
 }
 /// Converts a database operation to a header using the `TuringOp` enum
-pub async fn from_op<'op>(value: &TuringOp) -> &'op [u8] {
+pub fn from_op<'op>(value: &TuringOp) -> &'op [u8] {
     match value {
         &TuringOp::RepoCreate => &[0x00],
         &TuringOp::RepoDrop => &[0x01],
@@ -52,7 +52,7 @@ pub async fn from_op<'op>(value: &TuringOp) -> &'op [u8] {
     }
 }
 /// Converts a database operation from a header to `TuringOp` enum variant
-pub async fn to_op<'op>(value: &[u8]) -> TuringOp {
+pub fn to_op<'op>(value: &[u8]) -> TuringOp {
     match value {
         &[0x00] => TuringOp::RepoCreate,
         &[0x01] => TuringOp::RepoDrop,
@@ -91,7 +91,7 @@ pub struct FieldData {
 
 impl FieldData {
     /// Initializes a new `FieldData` struct
-    pub async fn new(value: &[u8]) -> FieldData {
+    pub fn new(value: &[u8]) -> FieldData {
         let current_time = TAI64N::now();
 
         Self {
@@ -101,7 +101,7 @@ impl FieldData {
         }
     }
     /// Updates a `FieldData` by modifying its time with a new `TAI64N` timestamp
-    pub async fn update(&mut self, value: &[u8]) -> &FieldData {
+    pub fn update(&mut self, value: &[u8]) -> &FieldData {
         self.data = value.into();
         self.modified = TAI64N::now();
 

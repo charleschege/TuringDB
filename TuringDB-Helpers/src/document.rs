@@ -22,9 +22,9 @@ impl DocumentQuery {
     /// ```rust
     /// use crate::DocumentQuery;
     ///
-    /// Document::new().await
+    /// Document::new()
     /// ```
-    pub async fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             db: Default::default(),
             document: Default::default(),
@@ -35,10 +35,10 @@ impl DocumentQuery {
     /// ```rust
     /// use crate::DocumentQuery;
     ///
-    /// let mut foo = DocumentQuery::new().await;
-    /// foo.db("db_name").await;
+    /// let mut foo = DocumentQuery::new();
+    /// foo.db("db_name");
     /// ```
-    pub async fn db(&mut self, name: &str) -> &Self {
+    pub fn db(&mut self, name: &str) -> &Self {
         self.db = name.into();
 
         self
@@ -48,12 +48,12 @@ impl DocumentQuery {
     /// ```rust
     /// use crate::DocumentQuery;
     ///
-    /// let mut foo = DocumentQuery::new().await;
+    /// let mut foo = DocumentQuery::new();
     /// foo
-    ///   .db("db_name").await
-    ///   .document("document_name").await;
+    ///   .db("db_name")
+    ///   .document("document_name");
     /// ```
-    pub async fn document(&mut self, name: &str) -> &Self {
+    pub fn document(&mut self, name: &str) -> &Self {
         self.document = Some(name.into());
 
         self
@@ -63,14 +63,14 @@ impl DocumentQuery {
     /// ```rust
     /// use crate::DocumentQuery;
     ///
-    /// let mut foo = DocumentQuery::new().await;
+    /// let mut foo = DocumentQuery::new();
     /// foo
-    ///   .db("db_name").await
-    ///   .document("document_name").await
-    ///   .create().await
+    ///   .db("db_name")
+    ///   .document("document_name")
+    ///   .create()
     /// ```
-    pub async fn create(&self) -> Result<Vec<u8>> {
-        let mut packet = from_op(&TuringOp::DocumentCreate).await.to_vec();
+    pub fn create(&self) -> Result<Vec<u8>> {
+        let mut packet = from_op(&TuringOp::DocumentCreate).to_vec();
         packet.extend_from_slice(self.db.as_bytes());
 
         let data = bincode::serialize::<Self>(self)?;
@@ -83,13 +83,13 @@ impl DocumentQuery {
     /// ```rust
     /// use crate::DocumentQuery;
     ///
-    /// let mut foo = DocumentQuery::new().await;
+    /// let mut foo = DocumentQuery::new();
     /// foo
-    ///   .db("db_name").await
-    ///   .list().await
+    ///   .db("db_name")
+    ///   .list()
     /// ```
-    pub async fn list(&self) -> Result<Vec<u8>> {
-        let mut packet = from_op(&TuringOp::DocumentList).await.to_vec();
+    pub fn list(&self) -> Result<Vec<u8>> {
+        let mut packet = from_op(&TuringOp::DocumentList).to_vec();
         packet.extend_from_slice(self.db.as_bytes());
 
         let data = bincode::serialize::<Self>(self)?;
@@ -102,14 +102,14 @@ impl DocumentQuery {
     /// ```rust
     /// use crate::DocumentQuery;
     ///
-    /// let mut foo = DocumentQuery::new().await;
+    /// let mut foo = DocumentQuery::new();
     /// foo
-    ///   .db("db_name").await
-    ///   .document("document_name").await
-    ///   .drop().await
+    ///   .db("db_name")
+    ///   .document("document_name")
+    ///   .drop()
     /// ```
-    pub async fn drop(&self) -> Result<Vec<u8>> {
-        let mut packet = from_op(&TuringOp::DocumentDrop).await.to_vec();
+    pub fn drop(&self) -> Result<Vec<u8>> {
+        let mut packet = from_op(&TuringOp::DocumentDrop).to_vec();
         packet.extend_from_slice(self.db.as_bytes());
 
         let data = bincode::serialize::<Self>(self)?;

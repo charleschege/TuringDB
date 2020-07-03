@@ -2,7 +2,7 @@ use custom_codes::DbOps;
 use turingdb_helpers::TuringOp;
 
 /// Handles converting an error to a common error syntax `[TuringDB::<TuringOp>::(ERROR)-{error}]`
-pub(crate) async fn format_error(op: &TuringOp, error: &anyhow::Error) -> DbOps {
+pub(crate) fn format_error(op: &TuringOp, error: &anyhow::Error) -> DbOps {
     let unhandled_error = format!(
         "[TuringDB::<{:?}>::(ERROR)-{:?}]",
         op,

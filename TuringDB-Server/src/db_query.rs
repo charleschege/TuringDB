@@ -23,7 +23,7 @@ impl DbQuery {
     ///     |- let foo = Arc::new(&foo); // This `Arc` must be from a module supporting async
     ///     |-  // spawn a task
     ///             |- let foo = Arc::clone(&foo);
-    ///             |- DatabaseQuery::list(&foo).await;
+    ///             |- DatabaseQuery::list(&foo);
     /// ```
     pub async fn list(storage: Arc<TuringEngine>) -> DbOps {
         storage.db_list().await
@@ -55,7 +55,7 @@ impl DbQuery {
 
         let db_name = match std::str::from_utf8(value) {
             Ok(value) => value,
-            Err(e) => return format_error(&TuringOp::DbCreate, &anyhow::Error::new(e)).await,
+            Err(e) => return format_error(&TuringOp::DbCreate, &anyhow::Error::new(e)),
         };
 
         match storage.db_create(db_name).await {
@@ -64,7 +64,7 @@ impl DbQuery {
                 DownCastErrors::AlreadyExists => DbOps::DbAlreadyExists,
                 DownCastErrors::NotFound => DbOps::RepoNotFound,
                 DownCastErrors::PermissionDenied => DbOps::PermissionDenied,
-                _ => format_error(&TuringOp::DbCreate, &e).await,
+                _ => format_error(&TuringOp::DbCreate, &e),
             },
         }
     }
@@ -95,7 +95,7 @@ impl DbQuery {
 
         let db_name = match std::str::from_utf8(value) {
             Ok(value) => value,
-            Err(e) => return format_error(&TuringOp::DbDrop, &anyhow::Error::new(e)).await,
+            Err(e) => return format_error(&TuringOp::DbDrop, &anyhow::Error::new(e)),
         };
 
         match storage.db_drop(db_name).await {
@@ -103,7 +103,7 @@ impl DbQuery {
             Err(e) => match custom_codes::try_downcast(&e) {
                 DownCastErrors::NotFound => DbOps::RepoNotFound,
                 DownCastErrors::PermissionDenied => DbOps::PermissionDenied,
-                _ => format_error(&TuringOp::DbCreate, &e).await,
+                _ => format_error(&TuringOp::DbCreate, &e),
             },
         }
     }

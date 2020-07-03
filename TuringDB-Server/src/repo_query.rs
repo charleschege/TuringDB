@@ -31,7 +31,7 @@ impl RepoQuery {
             Err(e) => match custom_codes::try_downcast(&e) {
                 DownCastErrors::AlreadyExists => DbOps::RepoAlreadyExists,
                 DownCastErrors::PermissionDenied => DbOps::PermissionDenied,
-                _ => format_error(&TuringOp::RepoCreate, &e).await,
+                _ => format_error(&TuringOp::RepoCreate, &e),
             },
         }
     }
@@ -55,7 +55,7 @@ impl RepoQuery {
             Err(e) => match custom_codes::try_downcast(&e) {
                 DownCastErrors::NotFound => DbOps::RepoNotFound,
                 DownCastErrors::PermissionDenied => DbOps::PermissionDenied,
-                _ => format_error(&TuringOp::RepoDrop, &e).await,
+                _ => format_error(&TuringOp::RepoDrop, &e),
             },
         }
     }

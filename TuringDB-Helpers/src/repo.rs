@@ -16,8 +16,8 @@ impl<'tp> RepoQuery {
     ///
     /// RepoQuery::create()
     /// ```
-    pub async fn create() -> &'tp [u8] {
-        from_op(&TuringOp::RepoCreate).await
+    pub fn create() -> &'tp [u8] {
+        from_op(&TuringOp::RepoCreate)
     }
     /// ### Drop a repository
     /// #### Usage
@@ -26,7 +26,7 @@ impl<'tp> RepoQuery {
     ///
     /// RepoQuery::drop()
     /// ```
-    pub async fn drop() -> &'tp [u8] {
-        from_op(&TuringOp::RepoDrop).await
+    pub fn drop() -> &'tp [u8] {
+        from_op(&TuringOp::RepoDrop)
     }
 }

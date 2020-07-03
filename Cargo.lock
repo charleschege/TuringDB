@@ -766,7 +766,6 @@ name = "turingdb-helpers"
 version = "2.0.0-beta.2"
 dependencies = [
  "anyhow",
- "async-trait",
  "bincode",
  "custom_codes",
  "serde",
