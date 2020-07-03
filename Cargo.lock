@@ -17,9 +17,9 @@ checksum = "567b077b825e468cc974f0020d4082ee6e03132512f207ef1a02fd5d00d1f32d"
 
 [[package]]
 name = "ahash"
-version = "0.3.8"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8fd72866655d1904d6b0997d0b07ba561047d070fbe29de039031c641b61217"
+checksum = "94e200a506d98f285fcd550bd2b0e5eacdfd53775e6d3aefaf2781571aabfe6f"
 dependencies = [
  "const-random",
 ]
@@ -54,17 +54,6 @@ name = "async-task"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c17772156ef2829aadc587461c7753af20b7e8db1529bc66855add962a3b35d3"
-
-[[package]]
-name = "async-trait"
-version = "0.1.36"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a265e3abeffdce30b2e26b7a11b222fe37c6067404001b434101457d0385eb92"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
 
 [[package]]
 name = "autocfg"
@@ -129,9 +118,9 @@ checksum = "24508e28c677875c380c20f4d28124fab6f8ed4ef929a1397d7b1a31e92f1005"
 
 [[package]]
 name = "cc"
-version = "1.0.56"
+version = "1.0.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77c1f1d60091c1b73e2b1f4560ab419204b178e625fa945ded7b660becd2bd46"
+checksum = "0fde55d2a2bfaa4c9668bbc63f531fbdeee3ffe188f4662511ce2c22b3eedebe"
 
 [[package]]
 name = "cfg-if"
@@ -224,9 +213,9 @@ dependencies = [
 
 [[package]]
 name = "dashmap"
-version = "3.11.4"
+version = "3.11.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8cfcd41ae02d60edded204341d2798ba519c336c51a37330aa4b98a1128def32"
+checksum = "142c7c0bd53a40359d2f19a983e824650df36e38510e817519660a0f1676305b"
 dependencies = [
  "ahash",
  "cfg-if",
@@ -236,9 +225,9 @@ dependencies = [
 
 [[package]]
 name = "event-listener"
-version = "2.0.1"
+version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05b148ad9bf80edb24098fd1ab4883c7c381e7900c1a38e512fb0586c4501505"
+checksum = "699d84875f1b72b4da017e6b0f77dfa88c0137f089958a88974d15938cbc2976"
 
 [[package]]
 name = "fastrand"
@@ -430,9 +419,9 @@ checksum = "3728d817d99e5ac407411fa471ff9800a778d88a24685968b36824eaf4bee400"
 
 [[package]]
 name = "memoffset"
-version = "0.5.4"
+version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4fc2c02a7e374099d4ee95a193111f72d2110197fe200272371758f6c3643d8"
+checksum = "c198b026e1bbf08a937e94c6c60f9ec4a2267f5b0d2eec9c1b21b061ce2be55f"
 dependencies = [
  "autocfg",
 ]
@@ -731,7 +720,7 @@ dependencies = [
 
 [[package]]
 name = "turingdb"
-version = "2.0.0-beta.2"
+version = "2.0.0-beta.3"
 dependencies = [
  "anyhow",
  "async-lock",
@@ -746,9 +735,9 @@ dependencies = [
 
 [[package]]
 name = "turingdb"
-version = "2.0.0-beta.2"
+version = "2.0.0-beta.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fc1afd8e48bcff93aa77cbd51850cf61edb8a63adcdbf44e9c0f89973673926"
+checksum = "d87b121b8d37aadf2e1f1eaa0ae67f8bb3e391338c1fd9e70e9656dbf72adb5a"
 dependencies = [
  "anyhow",
  "async-lock",
@@ -763,7 +752,7 @@ dependencies = [
 
 [[package]]
 name = "turingdb-helpers"
-version = "2.0.0-beta.2"
+version = "2.0.0-beta.3"
 dependencies = [
  "anyhow",
  "bincode",
@@ -774,12 +763,11 @@ dependencies = [
 
 [[package]]
 name = "turingdb-helpers"
-version = "2.0.0-beta.2"
+version = "2.0.0-beta.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea6fd709a353a7d41c72800ee4b80e1221311656a4a74a18815031a16dc89fd7"
+checksum = "24fa8ec510ee25d50f75b01bd96d2d61753dc61e6876c5ca64d2ed062d63d2f9"
 dependencies = [
  "anyhow",
- "async-trait",
  "bincode",
  "custom_codes",
  "serde",
@@ -788,12 +776,11 @@ dependencies = [
 
 [[package]]
 name = "turingdb-repo"
-version = "2.0.0-beta.2"
+version = "2.0.0-beta.3"
 dependencies = [
  "anyhow",
  "async-dup",
  "async-lock",
- "async-trait",
  "bincode",
  "blocking",
  "custom_codes",
@@ -804,12 +791,12 @@ dependencies = [
  "sled",
  "smol",
  "tai64",
- "turingdb-helpers 2.0.0-beta.2",
+ "turingdb-helpers 2.0.0-beta.3",
 ]
 
 [[package]]
 name = "turingdb-server"
-version = "2.0.0-beta.2"
+version = "2.0.0-beta.3"
 dependencies = [
  "anyhow",
  "async-dup",
@@ -823,8 +810,8 @@ dependencies = [
  "simple-signal",
  "smol",
  "tai64",
- "turingdb 2.0.0-beta.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "turingdb-helpers 2.0.0-beta.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "turingdb 2.0.0-beta.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "turingdb-helpers 2.0.0-beta.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "yansi",
 ]
 

@@ -64,7 +64,8 @@ impl FieldQuery {
         };
 
         storage
-            .field_list(&deser_document.db, &deser_document.document).await
+            .field_list(&deser_document.db, &deser_document.document)
+            .await
     }
     /// ### Insert key/value in a document, failing if the key already exists
     ///
