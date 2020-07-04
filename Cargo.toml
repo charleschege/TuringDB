@@ -1,6 +1,6 @@
 [package]
 name = "turingdb-repo"
-version = "2.0.0-beta.3"
+version = "2.0.0-beta.4"
 authors = ["Charles Chege <charleschege@protonmail.ch>"]
 edition = "2018"
 
