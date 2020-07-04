@@ -7,7 +7,7 @@ use crate::commands::{from_op, TuringOp};
 ///     db: String,
 /// }
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct DbQuery {
     db: String,
 }

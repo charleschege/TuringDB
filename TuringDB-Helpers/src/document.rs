@@ -10,7 +10,7 @@ use serde::Serialize;
 ///     document: Option<String>,
 /// }
 /// ```
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, Default)]
 pub struct DocumentQuery {
     db: String,
     document: Option<String>,
