@@ -9,7 +9,7 @@ use std::{
     ffi::OsString,
     fs::{self, DirBuilder},
     io::ErrorKind,
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 use tai64::TAI64N;
 
@@ -106,7 +106,7 @@ impl TuringEngine {
 
     /************** DATABASES *******************/
     /// Create a database
-    pub async fn db_create(&self, db_name: &str) -> Result<DbOps> {
+    pub async fn db_create(&self, db_name: &Path) -> Result<DbOps> {
         let mut path: PathBuf = REPO_NAME.into();
         path.push(db_name);
 
@@ -117,7 +117,7 @@ impl TuringEngine {
         Ok(DbOps::DbCreated)
     }
     /// Drop the database
-    pub async fn db_drop(&self, db_name: &str) -> Result<DbOps> {
+    pub async fn db_drop(&self, db_name: &Path) -> Result<DbOps> {
         if self.dbs.is_empty() {
             return Ok(DbOps::RepoEmpty);
         }
@@ -151,15 +151,17 @@ impl TuringEngine {
 
     /************** DOCUMENTS ************/
     /// Create a document
-    pub async fn doc_create(&self, db_name: &str, doc_name: &str) -> Result<DbOps> {
+    pub async fn doc_create(&self, db_name: &Path, doc_name: &Path) -> Result<DbOps> {
         if self.dbs.is_empty() {
             return Ok(DbOps::RepoEmpty);
         }
 
-        if doc_name.is_empty() {
+        if let Some(path) = doc_name.to_str() {
+           if path.is_empty() {
             return Ok(DbOps::EncounteredErrors(
                 "[TuringDB::<DocumentCreate>::(ERROR)-DOCUMENT_NAME_EMPTY]".to_owned(),
             ));
+           }
         }
 
         if let Some(mut database) = self.dbs.get_mut(&OsString::from(db_name)) {
@@ -185,7 +187,7 @@ impl TuringEngine {
         }
     }
     /// Drop a document
-    pub async fn doc_drop(&self, db_name: &str, doc_name: &str) -> Result<DbOps> {
+    pub async fn doc_drop(&self, db_name: &Path, doc_name: &Path) -> Result<DbOps> {
         if self.dbs.is_empty() {
             return Ok(DbOps::RepoEmpty);
         }
@@ -207,7 +209,7 @@ impl TuringEngine {
         }
     }
     /// List all fields in a document
-    pub async fn doc_list(&self, db_name: &str) -> DbOps {
+    pub async fn doc_list(&self, db_name: &Path) -> DbOps {
         if self.dbs.is_empty() {
             return DbOps::RepoEmpty;
         }
@@ -230,7 +232,7 @@ impl TuringEngine {
     }
     /// Flush all dirty I/O buffers from pagecache to disk.
     /// `RECOMMENDED:` Always use this function whenever you are building a networked server
-    pub async fn flush(&self, db_name: &str, doc_name: &str) -> Result<DbOps> {
+    pub async fn flush(&self, db_name: &Path, doc_name: &Path) -> Result<DbOps> {
         if let Some(mut database) = self.dbs.get_mut(&OsString::from(db_name)) {
             if let Some(document) = database.value_mut().list.get_mut(&OsString::from(doc_name)) {
                 document.fd.lock().await.flush()?;
@@ -244,7 +246,7 @@ impl TuringEngine {
     }
     /************* FIELDS ************/
     /// List all fields in a document
-    pub async fn field_list(&self, db_name: &str, doc_name: &str) -> DbOps {
+    pub async fn field_list(&self, db_name: &Path, doc_name: &Path) -> DbOps {
         if self.dbs.is_empty() {
             return DbOps::RepoEmpty;
         }
@@ -266,8 +268,8 @@ impl TuringEngine {
     /// Create a field with data
     pub async fn field_insert(
         &self,
-        db_name: &str,
-        doc_name: &str,
+        db_name: &Path,
+        doc_name: &Path,
         field_name: &str,
         data: &[u8],
     ) -> Result<DbOps> {
@@ -320,8 +322,8 @@ impl TuringEngine {
     /// Get a field
     pub async fn field_get(
         &self,
-        db_name: &str,
-        doc_name: &str,
+        db_name: &Path,
+        doc_name: &Path,
         field_name: &str,
     ) -> Result<DbOps> {
         if self.dbs.is_empty() {
@@ -350,8 +352,8 @@ impl TuringEngine {
     /// Drop a field
     pub async fn field_remove(
         &self,
-        db_name: &str,
-        doc_name: &str,
+        db_name: &Path,
+        doc_name: &Path,
         field_name: &str,
     ) -> Result<DbOps> {
         if self.dbs.is_empty() {
@@ -388,8 +390,8 @@ impl TuringEngine {
     /// Update a field
     pub async fn field_modify(
         &self,
-        db_name: &str,
-        doc_name: &str,
+        db_name: &Path,
+        doc_name: &Path,
         field_name: &str,
         field_value: &[u8],
     ) -> Result<DbOps> {
