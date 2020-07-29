@@ -27,3 +27,5 @@ async-dup = "1.2.1"
 futures = "0.3.5"
 bincode = "1.2.1"
 serde = { version = "1.0.114", features = ["derive"] }
+async-net = "0.1.2"
+futures-lite = "0.1.10"

@@ -4,6 +4,7 @@ use custom_codes::{DbOps, DownCastErrors};
 use serde::{Deserialize, Serialize};
 use turingdb::TuringEngine;
 use turingdb_helpers::TuringOp;
+use std::path::Path;
 
 /// Handles database queries
 /// ```rust
@@ -64,7 +65,7 @@ impl FieldQuery {
         };
 
         storage
-            .field_list(&deser_document.db, &deser_document.document)
+            .field_list(&Path::new(&deser_document.db), &Path::new(&deser_document.document))
             .await
     }
     /// ### Insert key/value in a document, failing if the key already exists
@@ -108,16 +109,16 @@ impl FieldQuery {
 
         match storage
             .field_insert(
-                &deser_document.db,
-                &deser_document.document,
-                &deser_document.field,
+                &Path::new(&deser_document.db),
+                &Path::new(&deser_document.document),
+                &deser_document.field.as_bytes(),
                 &data_check,
             )
             .await
         {
             Ok(op_result) => {
                 match storage
-                    .flush(&deser_document.db, &deser_document.document)
+                    .flush(Path::new(&deser_document.db), Path::new(&deser_document.document))
                     .await
                 {
                     Ok(_) => op_result,
@@ -172,9 +173,9 @@ impl FieldQuery {
 
         match storage
             .field_get(
-                &deser_document.db,
-                &deser_document.document,
-                &deser_document.field,
+                &Path::new(&deser_document.db),
+                &Path::new(&deser_document.document),
+                &deser_document.field.as_bytes(),
             )
             .await
         {
@@ -227,15 +228,15 @@ impl FieldQuery {
 
         match storage
             .field_remove(
-                &deser_document.db,
-                &deser_document.document,
-                &deser_document.field,
+                &Path::new(&deser_document.db),
+                &Path::new(&deser_document.document),
+                &deser_document.field.as_bytes(),
             )
             .await
         {
             Ok(op_result) => {
                 match storage
-                    .flush(&deser_document.db, &deser_document.document)
+                    .flush(&Path::new(&deser_document.db), &Path::new(&deser_document.document))
                     .await
                 {
                     Ok(_) => op_result,
@@ -290,16 +291,16 @@ impl FieldQuery {
 
         match storage
             .field_modify(
-                &deser_document.db,
-                &deser_document.document,
-                &deser_document.field,
+                &Path::new(&deser_document.db),
+                &Path::new(&deser_document.document),
+                &deser_document.field.as_bytes(),
                 &data_check,
             )
             .await
         {
             Ok(op_result) => {
                 match storage
-                    .flush(&deser_document.db, &deser_document.document)
+                    .flush(Path::new(&deser_document.db), Path::new(&deser_document.document))
                     .await
                 {
                     Ok(_) => op_result,

@@ -3,7 +3,7 @@ use async_dup::Arc;
 use custom_codes::{DbOps, DownCastErrors};
 use turingdb::TuringEngine;
 use turingdb_helpers::TuringOp;
-
+use std::path::Path;
 /// Handles database queries
 /// ```rust
 /// pub(crate) struct DbQuery;
@@ -58,7 +58,7 @@ impl DbQuery {
             Err(e) => return format_error(&TuringOp::DbCreate, &anyhow::Error::new(e)),
         };
 
-        match storage.db_create(db_name).await {
+        match storage.db_create(&Path::new(db_name)).await {
             Ok(op_result) => op_result,
             Err(e) => match custom_codes::try_downcast(&e) {
                 DownCastErrors::AlreadyExists => DbOps::DbAlreadyExists,
@@ -98,7 +98,7 @@ impl DbQuery {
             Err(e) => return format_error(&TuringOp::DbDrop, &anyhow::Error::new(e)),
         };
 
-        match storage.db_drop(db_name).await {
+        match storage.db_drop(&Path::new(db_name)).await {
             Ok(op_result) => op_result,
             Err(e) => match custom_codes::try_downcast(&e) {
                 DownCastErrors::NotFound => DbOps::RepoNotFound,

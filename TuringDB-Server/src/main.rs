@@ -29,9 +29,10 @@
 use anyhow::Result;
 use async_dup::Arc;
 use custom_codes::DbOps;
-use futures::prelude::*;
-use smol::{Async, Task};
-use std::net::{Shutdown, SocketAddr, TcpListener, TcpStream};
+use futures_lite::*;
+use async_net::{TcpListener, TcpStream};
+use smol::Task;
+use std::net::{Shutdown, SocketAddr};
 use turingdb::TuringEngine;
 use turingdb_helpers::{to_op, TuringOp};
 
@@ -71,8 +72,8 @@ fn main() -> anyhow::Result<()> {
             }
         };
 
-        let listener = Async::<TcpListener>::bind("127.0.0.1:4343")?;
-        println!("Listening on {}", listener.get_ref().local_addr()?);
+        let listener = TcpListener::bind("127.0.0.1:4343").await?;
+        println!("Listening on {}", listener.local_addr()?);
 
         while let Some(stream) = listener.incoming().next().await {
             let stream = stream?;
@@ -97,10 +98,10 @@ fn main() -> anyhow::Result<()> {
 }
 
 async fn handle_client(
-    mut stream: Async<TcpStream>,
+    mut stream: TcpStream,
     storage: Arc<TuringEngine>,
 ) -> Result<SocketAddr> {
-    println!("↓[CONNECTED] device[{}]", stream.get_ref().peer_addr()?);
+    println!("↓[CONNECTED] device[{}]", stream.peer_addr()?);
 
     let mut buffer = [0; BUFFER_CAPACITY];
     let mut container_buffer: Vec<u8> = Vec::new();
@@ -121,9 +122,9 @@ async fn handle_client(
         bytes_read = stream.read(&mut buffer).await?;
 
         if bytes_read == 0 {
-            let peer = stream.get_ref().peer_addr()?;
+            let peer = stream.peer_addr()?;
             //Shutdown the TCP address
-            stream.get_ref().shutdown(Shutdown::Both)?;
+            stream.shutdown(Shutdown::Both)?;
             // Terminate the stream if the client terminates the connection by sending 0 bytes
             return Ok(peer);
         }
@@ -160,7 +161,7 @@ async fn process_op(op: &TuringOp, storage: Arc<TuringEngine>, value: &[u8]) -> 
     }
 }
 
-async fn handle_response(stream: &mut Async<TcpStream>, ops: DbOps) -> Result<()> {
+async fn handle_response(stream: &mut TcpStream, ops: DbOps) -> Result<()> {
     let ops_to_bytes = bincode::serialize::<DbOps>(&ops)?;
     stream.write(&ops_to_bytes).await?;
     stream.flush().await?;

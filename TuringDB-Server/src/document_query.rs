@@ -4,6 +4,7 @@ use custom_codes::{DbOps, DownCastErrors};
 use serde::{Deserialize, Serialize};
 use turingdb::TuringEngine;
 use turingdb_helpers::TuringOp;
+use std::path::Path;
 
 /// Handles database queries
 /// ```rust
@@ -59,7 +60,7 @@ impl DocumentQuery {
             }
         };
 
-        match storage.doc_create(&deser_document.db, &doc_check).await {
+        match storage.doc_create(&Path::new(&deser_document.db), Path::new(&doc_check)).await {
             Ok(op_result) => op_result,
             Err(e) => match custom_codes::try_downcast(&e) {
                 DownCastErrors::AlreadyExists => DbOps::DocumentAlreadyExists,
@@ -108,7 +109,7 @@ impl DocumentQuery {
             None => (),
         };
 
-        storage.doc_list(&deser_document.db).await
+        storage.doc_list(&Path::new(&deser_document.db)).await
     }
     /// ### Drops a document in a database
     ///
@@ -149,7 +150,7 @@ impl DocumentQuery {
             }
         };
 
-        match storage.doc_drop(&deser_document.db, &doc_check).await {
+        match storage.doc_drop(Path::new(&deser_document.db), Path::new(&doc_check)).await {
             Ok(op_result) => op_result,
             Err(e) => match custom_codes::try_downcast(&e) {
                 DownCastErrors::NotFound => DbOps::RepoNotFound,
