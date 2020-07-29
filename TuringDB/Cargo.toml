@@ -18,9 +18,9 @@ readme = "README.md"
 bincode = "1.2.1"
 custom_codes = { path = "../../custom_codes" }
 tai64 = { version = "3.1.0", features = ["serde"] }
-serde = { version = "1.0.110", features = ["derive"] }
+serde = { version = "1.0.114", features = ["derive"] }
 sled = "0.32.0"
-anyhow = "1.0.31"
-async-lock = "1.1.2"
-dashmap = { version = "3.11.1", features = ["serde"] }
-blocking = "0.4.6"
+anyhow = "1.0.32"
+async-lock = "1.1.4"
+dashmap = { version = "3.11.7", features = ["serde"] }
+blocking = "0.5.0"
