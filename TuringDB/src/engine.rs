@@ -52,7 +52,7 @@ impl TuringEngine {
     //---------
     /// Read a repo
     pub async fn repo_init(&self) -> Result<&TuringEngine> {
-        let mut repo = match unblock!(fs::read_dir("TuringDB_Repo")) {
+        let repo = match unblock!(fs::read_dir("TuringDB_Repo")) {
             Ok(value) => value,
             Err(e) => {
                 if e.kind() == ErrorKind::NotFound {
@@ -63,15 +63,15 @@ impl TuringEngine {
             }
         };
 
-        for database_entry in repo.next() {
+        for database_entry in repo {
             let database_entry = database_entry?;
             let database_name = database_entry.file_name();
 
             if database_entry.file_type()?.is_dir() {
-                let mut repo = unblock!(fs::read_dir(&database_entry.path()))?;
+                let repo = unblock!(fs::read_dir(&database_entry.path()))?;
                 let mut current_db = Tdb::new();
 
-                for document_entry in repo.next() {
+                for document_entry in repo {
                     let document_entry = document_entry?;
                     let mut field_keys = Vec::new();
 
