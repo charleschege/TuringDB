@@ -312,7 +312,11 @@ impl TuringEngine {
                 if document.keys.binary_search(&field_name.to_vec()).is_ok() {
                     Ok(DbOps::FieldAlreadyExists)
                 } else {
-                    
+                    document
+                        .fd
+                        .lock()
+                        .await
+                        .insert(field_name, data)?;
 
                     Ok(DbOps::FieldInserted)
                 }
@@ -370,7 +374,7 @@ impl TuringEngine {
                         .fd
                         .lock()
                         .await
-                        .transaction::<_, _, sled::Error>(|db| Ok(db.remove(field_name)?))?;
+                        .remove(field_name)?;
 
                     match sled_op {
                         Some(_) => {
