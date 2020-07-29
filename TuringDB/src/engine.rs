@@ -80,14 +80,21 @@ impl TuringEngine {
                         let db = sled::open(document_entry.path())?;
 
                         for field_key in db.into_iter().keys() {
-                            field_keys.push(String::from_utf8(field_key?.to_vec())?);
+                            field_keys.push(field_key?);
                         }
+
+                        let data = field_keys
+                            .iter()
+                            .map(|inner| {
+                                inner.to_vec()
+                            })
+                            .collect();
 
                         current_db.list.insert(
                             document_name,
                             Document {
                                 fd: Lock::new(db),
-                                keys: field_keys,
+                                keys: data,
                             },
                         );
                     }
@@ -256,7 +263,15 @@ impl TuringEngine {
                 if document.keys.is_empty() {
                     DbOps::DocumentEmpty
                 } else {
-                    DbOps::FieldList(document.keys.to_owned())
+                    let mut data = document
+                        .keys
+                        .iter()
+                        .map(|key| {
+                            key.to_vec()
+                        })
+                        .collect();
+                        
+                    DbOps::FieldList(data)
                 }
             } else {
                 DbOps::DocumentNotFound
@@ -270,7 +285,7 @@ impl TuringEngine {
         &self,
         db_name: &Path,
         doc_name: &Path,
-        field_name: &str,
+        field_name: &[u8],
         data: &[u8],
     ) -> Result<DbOps> {
         if self.dbs.is_empty() {
@@ -291,24 +306,10 @@ impl TuringEngine {
 
         if let Some(mut database) = self.dbs.get_mut(&OsString::from(db_name)) {
             if let Some(document) = database.value_mut().list.get_mut(&OsString::from(doc_name)) {
-                if document.keys.binary_search(&field_name.into()).is_ok() {
+                if document.keys.binary_search(&field_name.to_vec()).is_ok() {
                     Ok(DbOps::FieldAlreadyExists)
                 } else {
-                    let field_data = FieldData::new(data);
-                    let field_data = bincode::serialize::<FieldData>(&field_data)?;
-                    let field_key: Vec<u8> = field_name.to_owned().into_bytes();
-
-                    document
-                        .fd
-                        .lock()
-                        .await
-                        .transaction::<_, _, sled::Error>(|db| {
-                            Ok(db.insert(field_key.clone(), field_data.clone().to_vec())?)
-                        })?;
-
-                    document.fd.lock().await.flush()?;
-
-                    document.keys.push(field_name.into());
+                    
 
                     Ok(DbOps::FieldInserted)
                 }
@@ -324,7 +325,7 @@ impl TuringEngine {
         &self,
         db_name: &Path,
         doc_name: &Path,
-        field_name: &str,
+        field_name: &[u8],
     ) -> Result<DbOps> {
         if self.dbs.is_empty() {
             return Ok(DbOps::RepoEmpty);
@@ -332,10 +333,9 @@ impl TuringEngine {
 
         if let Some(mut database) = self.dbs.get_mut(&OsString::from(db_name)) {
             if let Some(document) = database.value_mut().list.get_mut(&OsString::from(doc_name)) {
-                if document.keys.binary_search(&field_name.into()).is_ok() {
-                    let field_key: Vec<u8> = field_name.to_owned().into_bytes();
+                if document.keys.binary_search(&field_name.to_vec()).is_ok() {
 
-                    match document.fd.lock().await.get(field_key)? {
+                    match document.fd.lock().await.get(field_name)? {
                         Some(data) => Ok(DbOps::FieldContents(data.to_vec())),
                         None => Ok(DbOps::FieldNotFound),
                     }
@@ -354,7 +354,7 @@ impl TuringEngine {
         &self,
         db_name: &Path,
         doc_name: &Path,
-        field_name: &str,
+        field_name: &[u8],
     ) -> Result<DbOps> {
         if self.dbs.is_empty() {
             return Ok(DbOps::RepoEmpty);
@@ -362,13 +362,12 @@ impl TuringEngine {
 
         if let Some(mut database) = self.dbs.get_mut(&OsString::from(db_name)) {
             if let Some(document) = database.value_mut().list.get_mut(&OsString::from(doc_name)) {
-                if let Ok(field_index) = document.keys.binary_search(&field_name.into()) {
-                    let field_key: Vec<u8> = field_name.to_owned().into_bytes();
+                if let Ok(field_index) = document.keys.binary_search(&field_name.to_vec()) {
                     let sled_op = document
                         .fd
                         .lock()
                         .await
-                        .transaction::<_, _, sled::Error>(|db| Ok(db.remove(field_key.clone())?))?;
+                        .transaction::<_, _, sled::Error>(|db| Ok(db.remove(field_name)?))?;
 
                     match sled_op {
                         Some(_) => {
@@ -392,7 +391,7 @@ impl TuringEngine {
         &self,
         db_name: &Path,
         doc_name: &Path,
-        field_name: &str,
+        field_name: &[u8],
         field_value: &[u8],
     ) -> Result<DbOps> {
         if self.dbs.is_empty() {
@@ -401,12 +400,11 @@ impl TuringEngine {
 
         if let Some(mut database) = self.dbs.get_mut(&OsString::from(db_name)) {
             if let Some(document) = database.value_mut().list.get_mut(&OsString::from(doc_name)) {
-                if document.keys.binary_search(&field_name.into()).is_ok() {
-                    let field_key: Vec<u8> = field_name.to_owned().into_bytes();
-                    let field_key_insert = field_key.clone();
+                if document.keys.binary_search(&field_name.to_vec()).is_ok() {
+                    let field_key: Vec<u8> = field_name.to_owned();
                     let stored_data;
 
-                    let key_exists = document.fd.lock().await.get(field_key_insert)?;
+                    let key_exists = document.fd.lock().await.get(&field_key)?;
 
                     match key_exists {
                         Some(data) => {
@@ -482,7 +480,7 @@ impl Tdb {
 #[derive(Debug, Clone)]
 struct Document {
     fd: Lock<sled::Db>,
-    keys: Vec<String>,
+    keys: Vec<Vec<u8>>,
 }
 
 /// Contains the structure of a value represented by a key
