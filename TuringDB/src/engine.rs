@@ -63,7 +63,7 @@ impl TuringEngine {
             }
         };
 
-        while let Some(database_entry) = repo.next() {
+        for database_entry in repo.next() {
             let database_entry = database_entry?;
             let database_name = database_entry.file_name();
 
@@ -71,7 +71,7 @@ impl TuringEngine {
                 let mut repo = unblock!(fs::read_dir(&database_entry.path()))?;
                 let mut current_db = Tdb::new();
 
-                while let Some(document_entry) = repo.next() {
+                for document_entry in repo.next() {
                     let document_entry = document_entry?;
                     let mut field_keys = Vec::new();
 
@@ -143,11 +143,14 @@ impl TuringEngine {
             return DbOps::RepoEmpty;
         }
 
-        let mut list: Vec<String> = Vec::new();
-
-        for db in self.dbs.iter() {
-            list.push(db.key().clone().to_string_lossy().to_string());
-        }
+        let list = 
+            self
+                .dbs
+                .iter()
+                .map(|db| {
+                    db.key().clone().to_string_lossy().to_string()
+                })
+                .collect::<Vec<String>>();
 
         if list.is_empty() {
             DbOps::RepoEmpty
@@ -263,7 +266,7 @@ impl TuringEngine {
                 if document.keys.is_empty() {
                     DbOps::DocumentEmpty
                 } else {
-                    let mut data = document
+                    let data = document
                         .keys
                         .iter()
                         .map(|key| {
