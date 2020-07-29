@@ -1,39 +1,6 @@
-[package]
-name = "turingdb-repo"
-version = "2.0.0-beta.4"
-authors = ["Charles Chege <charleschege@protonmail.ch>"]
-edition = "2018"
-
 [workspace]
 members = [
 	"TuringDB",
 	"TuringDB-Helpers",
 	"TuringDB-Server",
 ]
-
-
-[lib]
-name = "turingdb"
-path = "TuringDB/src/lib.rs"
-
-[[bin]]
-name = "turingdb-server"
-path = "TuringDB-Server/src/main.rs"
-
-[dependencies]
-bincode = "1.2.1"
-custom_codes = { path = "../custom_codes" }
-tai64 = { version = "3.1.0", features = ["serde"] }
-serde = { version = "1.0.114", features = ["derive"] }
-sled = "0.34.2"
-anyhow = "1.0.32"
-smol = "0.1.18"
-async-lock = "1.1.4"
-futures = "0.3.5"
-signal-msg = "0.2.1"
-async-dup = "1.2.1"
-dashmap = { version = "3.11.7", features = ["serde"] }
-turingdb-helpers = { path = "./TuringDB-Helpers" }
-blocking = "0.5.0"
-async-net = "0.1.2"
-futures-lite = "0.1.10"

@@ -105,7 +105,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "556790e2ea8d562a416bed6d04c4e92f949a1d5c4c724544c30d25f063b84b03"
 dependencies = [
  "async-io",
- "blocking 0.5.0",
+ "blocking",
  "futures-lite",
 ]
 
@@ -156,20 +156,6 @@ name = "bitflags"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
-
-[[package]]
-name = "blocking"
-version = "0.4.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2468ff7bf85066b4a3678fede6fe66db31846d753ff0adfbfab2c6a6e81612b"
-dependencies = [
- "async-channel",
- "atomic-waker",
- "futures-lite",
- "once_cell",
- "parking",
- "waker-fn",
-]
 
 [[package]]
 name = "blocking"
@@ -712,15 +698,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "signal-msg"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "665b75f56ea37e1f2fb42f4bfd55b22c339e10d52bcc53c2d29fa616b6d37d60"
-dependencies = [
- "simple-signal",
-]
-
-[[package]]
 name = "simple-mutex"
 version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -764,47 +741,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "sled"
-version = "0.34.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e6a1b592011d7eb727a261d2f80608db11d7f02972c7016e8d4e74e67fe0daf"
-dependencies = [
- "crc32fast",
- "crossbeam-epoch",
- "crossbeam-utils",
- "fs2",
- "fxhash",
- "libc",
- "log",
- "parking_lot",
-]
-
-[[package]]
 name = "smallvec"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3757cb9d89161a2f24e1cf78efa0c1fcff485d18e3f55e0aa3480824ddaa0f3f"
-
-[[package]]
-name = "smol"
-version = "0.1.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "620cbb3c6e34da57d3a248cda0cd01cd5848164dc062e764e65d06fe3ea7aed5"
-dependencies = [
- "async-task",
- "blocking 0.4.7",
- "concurrent-queue",
- "fastrand",
- "futures-io",
- "futures-util",
- "libc",
- "once_cell",
- "scoped-tls",
- "slab",
- "socket2",
- "wepoll-sys-stjepang",
- "winapi",
-]
 
 [[package]]
 name = "smol"
@@ -815,7 +755,7 @@ dependencies = [
  "async-channel",
  "async-executor",
  "async-io",
- "blocking 0.5.0",
+ "blocking",
  "cfg-if",
  "easy-parallel",
  "futures-lite",
@@ -861,11 +801,11 @@ dependencies = [
  "anyhow",
  "async-lock",
  "bincode",
- "blocking 0.5.0",
+ "blocking",
  "custom_codes",
  "dashmap",
  "serde",
- "sled 0.32.1",
+ "sled",
  "tai64",
 ]
 
@@ -881,28 +821,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "turingdb-repo"
-version = "2.0.0-beta.4"
-dependencies = [
- "anyhow",
- "async-dup",
- "async-lock",
- "async-net",
- "bincode",
- "blocking 0.5.0",
- "custom_codes",
- "dashmap",
- "futures",
- "futures-lite",
- "serde",
- "signal-msg",
- "sled 0.34.2",
- "smol 0.1.18",
- "tai64",
- "turingdb-helpers",
-]
-
-[[package]]
 name = "turingdb-server"
 version = "2.0.0-beta.4"
 dependencies = [
@@ -915,7 +833,7 @@ dependencies = [
  "futures-lite",
  "serde",
  "simple-signal",
- "smol 0.3.3",
+ "smol",
  "tai64",
  "turingdb",
  "turingdb-helpers",
