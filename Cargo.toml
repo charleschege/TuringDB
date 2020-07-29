@@ -35,3 +35,5 @@ async-dup = "1.2.1"
 dashmap = { version = "3.11.7", features = ["serde"] }
 turingdb-helpers = { path = "./TuringDB-Helpers" }
 blocking = "0.5.0"
+async-net = "0.1.2"
+futures-lite = "0.1.10"

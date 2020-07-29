@@ -99,6 +99,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-net"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "556790e2ea8d562a416bed6d04c4e92f949a1d5c4c724544c30d25f063b84b03"
+dependencies = [
+ "async-io",
+ "blocking 0.5.0",
+ "futures-lite",
+]
+
+[[package]]
 name = "async-task"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -876,11 +887,13 @@ dependencies = [
  "anyhow",
  "async-dup",
  "async-lock",
+ "async-net",
  "bincode",
  "blocking 0.5.0",
  "custom_codes",
  "dashmap",
  "futures",
+ "futures-lite",
  "serde",
  "signal-msg",
  "sled 0.34.2",
@@ -895,9 +908,11 @@ version = "2.0.0-beta.4"
 dependencies = [
  "anyhow",
  "async-dup",
+ "async-net",
  "bincode",
  "custom_codes",
  "futures",
+ "futures-lite",
  "serde",
  "simple-signal",
  "smol 0.3.3",
