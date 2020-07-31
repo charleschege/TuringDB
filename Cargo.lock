@@ -812,8 +812,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "turingdb"
+version = "2.0.0-beta.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ce6a618f661daf01b5e30f2b0535bb9bdf81dc3b3242da30b4ca066b50b3594"
+dependencies = [
+ "anyhow",
+ "async-lock",
+ "bincode",
+ "blocking",
+ "custom_codes",
+ "dashmap",
+ "serde",
+ "sled",
+ "tai64",
+]
+
+[[package]]
 name = "turingdb-helpers"
 version = "2.0.0-beta.4"
+dependencies = [
+ "anyhow",
+ "bincode",
+ "custom_codes",
+ "serde",
+ "tai64",
+]
+
+[[package]]
+name = "turingdb-helpers"
+version = "2.0.0-beta.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0212f5a30d67e3e1e7a2361c4600a95f77e964c712d495718375edd8b0ab01ed"
 dependencies = [
  "anyhow",
  "bincode",
@@ -837,8 +867,8 @@ dependencies = [
  "simple-signal",
  "smol",
  "tai64",
- "turingdb",
- "turingdb-helpers",
+ "turingdb 2.0.0-beta.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "turingdb-helpers 2.0.0-beta.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "yansi",
 ]
 
