@@ -22,7 +22,5 @@ jobs:
       run: cargo build --verbose -p turingdb-helpers
     - name: Build turingdb-server
       run: cargo build --verbose -p turingdb-server 
-    - name: Run tests
-      run: cargo test --verbose
     - name: fmt
       run: cargo fmt --all
