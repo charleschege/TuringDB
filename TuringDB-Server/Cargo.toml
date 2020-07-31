@@ -17,7 +17,7 @@ readme = "README.md"
 [dependencies]
 turingdb = { path = "../TuringDB" }
 turingdb-helpers = { path = "../TuringDB-Helpers" }
-custom_codes = { path = "../../custom_codes" }
+custom_codes = "2.0.4"
 tai64 = { version = "3.1.0", features = ["serde"] }
 anyhow = "1.0.32"
 yansi = "0.5.0"

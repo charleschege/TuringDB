@@ -270,6 +270,8 @@ dependencies = [
 [[package]]
 name = "custom_codes"
 version = "2.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "51b375940f7c7b859485d5bc0fe721a39003e950750e939288f0998039aab78c"
 dependencies = [
  "anyhow",
  "serde",
