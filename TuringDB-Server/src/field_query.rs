@@ -2,9 +2,9 @@ use crate::errors::format_error;
 use async_dup::Arc;
 use custom_codes::{DbOps, DownCastErrors};
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 use turingdb::TuringEngine;
 use turingdb_helpers::TuringOp;
-use std::path::Path;
 
 /// Handles database queries
 /// ```rust
@@ -65,7 +65,10 @@ impl FieldQuery {
         };
 
         storage
-            .field_list(&Path::new(&deser_document.db), &Path::new(&deser_document.document))
+            .field_list(
+                &Path::new(&deser_document.db),
+                &Path::new(&deser_document.document),
+            )
             .await
     }
     /// ### Insert key/value in a document, failing if the key already exists
@@ -118,7 +121,10 @@ impl FieldQuery {
         {
             Ok(op_result) => {
                 match storage
-                    .flush(Path::new(&deser_document.db), Path::new(&deser_document.document))
+                    .flush(
+                        Path::new(&deser_document.db),
+                        Path::new(&deser_document.document),
+                    )
                     .await
                 {
                     Ok(_) => op_result,
@@ -236,7 +242,10 @@ impl FieldQuery {
         {
             Ok(op_result) => {
                 match storage
-                    .flush(&Path::new(&deser_document.db), &Path::new(&deser_document.document))
+                    .flush(
+                        &Path::new(&deser_document.db),
+                        &Path::new(&deser_document.document),
+                    )
                     .await
                 {
                     Ok(_) => op_result,
@@ -300,7 +309,10 @@ impl FieldQuery {
         {
             Ok(op_result) => {
                 match storage
-                    .flush(Path::new(&deser_document.db), Path::new(&deser_document.document))
+                    .flush(
+                        Path::new(&deser_document.db),
+                        Path::new(&deser_document.document),
+                    )
                     .await
                 {
                     Ok(_) => op_result,

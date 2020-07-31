@@ -2,9 +2,9 @@ use crate::errors::format_error;
 use async_dup::Arc;
 use custom_codes::{DbOps, DownCastErrors};
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 use turingdb::TuringEngine;
 use turingdb_helpers::TuringOp;
-use std::path::Path;
 
 /// Handles database queries
 /// ```rust
@@ -60,7 +60,10 @@ impl DocumentQuery {
             }
         };
 
-        match storage.doc_create(&Path::new(&deser_document.db), Path::new(&doc_check)).await {
+        match storage
+            .doc_create(&Path::new(&deser_document.db), Path::new(&doc_check))
+            .await
+        {
             Ok(op_result) => op_result,
             Err(e) => match custom_codes::try_downcast(&e) {
                 DownCastErrors::AlreadyExists => DbOps::DocumentAlreadyExists,
@@ -150,7 +153,10 @@ impl DocumentQuery {
             }
         };
 
-        match storage.doc_drop(Path::new(&deser_document.db), Path::new(&doc_check)).await {
+        match storage
+            .doc_drop(Path::new(&deser_document.db), Path::new(&doc_check))
+            .await
+        {
             Ok(op_result) => op_result,
             Err(e) => match custom_codes::try_downcast(&e) {
                 DownCastErrors::NotFound => DbOps::RepoNotFound,

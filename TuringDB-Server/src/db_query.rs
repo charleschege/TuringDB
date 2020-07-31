@@ -1,9 +1,9 @@
 use crate::errors::format_error;
 use async_dup::Arc;
 use custom_codes::{DbOps, DownCastErrors};
+use std::path::Path;
 use turingdb::TuringEngine;
 use turingdb_helpers::TuringOp;
-use std::path::Path;
 /// Handles database queries
 /// ```rust
 /// pub(crate) struct DbQuery;

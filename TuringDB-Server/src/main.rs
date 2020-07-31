@@ -28,9 +28,9 @@
 
 use anyhow::Result;
 use async_dup::Arc;
+use async_net::{TcpListener, TcpStream};
 use custom_codes::DbOps;
 use futures_lite::*;
-use async_net::{TcpListener, TcpStream};
 use smol::Task;
 use std::net::{Shutdown, SocketAddr};
 use turingdb::TuringEngine;
@@ -97,10 +97,7 @@ fn main() -> anyhow::Result<()> {
     })
 }
 
-async fn handle_client(
-    mut stream: TcpStream,
-    storage: Arc<TuringEngine>,
-) -> Result<SocketAddr> {
+async fn handle_client(mut stream: TcpStream, storage: Arc<TuringEngine>) -> Result<SocketAddr> {
     println!("↓[CONNECTED] device[{}]", stream.peer_addr()?);
 
     let mut buffer = [0; BUFFER_CAPACITY];
