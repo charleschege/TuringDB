@@ -1,0 +1,28 @@
+name: Rust
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build turingdb library
+      run: cargo build --verbose -p turingdb
+    - name: Build turingdb-helpers
+      run: cargo build --verbose -p turingdb-helpers
+    - name: Build turingdb-server
+      run: cargo build --verbose -p turingdb-server 
+    - name: Run tests
+      run: cargo test --verbose
+    - name: fmt
+      run: cargo fmt --all
