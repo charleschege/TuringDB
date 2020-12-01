@@ -1,17 +1,17 @@
 use anyhow::Result;
-use async_lock::Lock;
-use blocking::unblock;
 use custom_codes::DbOps;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     ffi::OsString,
-    fs::{self, DirBuilder},
     io::ErrorKind,
     path::{Path, PathBuf},
 };
 use tai64::TAI64N;
+use async_fs::{self, DirBuilder};
+use futures_lite::stream::StreamExt;
+use async_lock::Mutex;
 
 const REPO_NAME: &str = "TuringDB_Repo";
 
@@ -23,7 +23,7 @@ const REPO_NAME: &str = "TuringDB_Repo";
 ///     dbs: DashMap<OsString, Tdb>, // Repo<DatabaseName, Databases>
 /// }
 /// ```
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct TuringEngine {
     dbs: DashMap<OsString, Tdb>, // Repo<DatabaseName, Databases>
 }
@@ -38,7 +38,7 @@ impl TuringEngine {
     /// Create a repo
     pub async fn repo_create(&self) -> Result<DbOps> {
         let path = "TuringDB_Repo";
-        unblock!(DirBuilder::new().recursive(false).create(path))?;
+        DirBuilder::new().recursive(false).create(path).await?;
 
         Ok(DbOps::RepoCreated)
     }
@@ -52,7 +52,7 @@ impl TuringEngine {
     //---------
     /// Read a repo
     pub async fn repo_init(&self) -> Result<&TuringEngine> {
-        let repo = match unblock!(fs::read_dir("TuringDB_Repo")) {
+        let mut repo = match async_fs::read_dir("TuringDB_Repo").await {
             Ok(value) => value,
             Err(e) => {
                 if e.kind() == ErrorKind::NotFound {
@@ -63,19 +63,17 @@ impl TuringEngine {
             }
         };
 
-        for database_entry in repo {
-            let database_entry = database_entry?;
+        while let Some(database_entry) = repo.try_next().await? {
             let database_name = database_entry.file_name();
 
-            if database_entry.file_type()?.is_dir() {
-                let repo = unblock!(fs::read_dir(&database_entry.path()))?;
+            if database_entry.file_type().await?.is_dir() {
+                let mut repo = async_fs::read_dir(&database_entry.path()).await?;
                 let mut current_db = Tdb::new();
 
-                for document_entry in repo {
-                    let document_entry = document_entry?;
+                while let Some(document_entry) = repo.try_next().await? {
                     let mut field_keys = Vec::new();
 
-                    if document_entry.file_type()?.is_dir() {
+                    if document_entry.file_type().await?.is_dir() {
                         let document_name = document_entry.file_name();
                         let db = sled::open(document_entry.path())?;
 
@@ -88,7 +86,7 @@ impl TuringEngine {
                         current_db.list.insert(
                             document_name,
                             Document {
-                                fd: Lock::new(db),
+                                fd: Mutex::new(db),
                                 keys: data,
                             },
                         );
@@ -102,7 +100,7 @@ impl TuringEngine {
     }
     /// Drop a repository
     pub async fn repo_drop(&self) -> Result<DbOps> {
-        unblock!(fs::remove_dir_all(REPO_NAME))?;
+        async_fs::remove_dir_all(REPO_NAME).await?;
         Ok(DbOps::RepoDropped)
     }
 
@@ -112,7 +110,7 @@ impl TuringEngine {
         let mut path: PathBuf = REPO_NAME.into();
         path.push(db_name);
 
-        unblock!(DirBuilder::new().recursive(false).create(path))?;
+        DirBuilder::new().recursive(false).create(path).await?;
 
         self.dbs.insert(db_name.into(), Tdb::new());
 
@@ -126,7 +124,7 @@ impl TuringEngine {
 
         let mut path: PathBuf = REPO_NAME.into();
         path.push(db_name);
-        unblock!(fs::remove_dir_all(path))?;
+        async_fs::remove_dir_all(path).await?;
 
         self.dbs.remove(&OsString::from(db_name));
 
@@ -177,7 +175,7 @@ impl TuringEngine {
                 database.value_mut().list.insert(
                     OsString::from(doc_name),
                     Document {
-                        fd: Lock::new(sled::Config::default().create_new(true).path(path).open()?),
+                        fd: Mutex::new(sled::Config::default().create_new(true).path(path).open()?),
                         keys: Vec::new(),
                     },
                 );
@@ -200,7 +198,7 @@ impl TuringEngine {
                     let mut path: PathBuf = REPO_NAME.into();
                     path.push(db_name);
                     path.push(doc_name);
-                    unblock!(fs::remove_dir_all(path))?;
+                    async_fs::remove_dir_all(path).await?;
 
                     Ok(DbOps::DocumentDropped)
                 }
@@ -430,7 +428,7 @@ impl TuringEngine {
 ///     list: HashMap<OsString, Document>,
 /// }
 ///```
-#[derive(Debug, Clone)]
+#[derive(Debug,)]
 struct Tdb {
     list: HashMap<OsString, Document>,
     //Database<Document, Fileds>
@@ -461,9 +459,9 @@ impl Tdb {
 ///     keys: Vec<String>
 /// }
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug,)]
 struct Document {
-    fd: Lock<sled::Db>,
+    fd: Mutex<sled::Db>,
     keys: Vec<Vec<u8>>,
 }
 
