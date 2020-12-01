@@ -24,3 +24,5 @@ async-lock = "2.3.0"
 dashmap = { version = "3.11.10", features = ["serde"] }
 blocking = "1.0.2"
 custom_codes = "2.0.4"
+async-fs = "1.5.0"
+futures-lite = "1.11.2"
