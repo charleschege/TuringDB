@@ -26,9 +26,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.34"
+version = "1.0.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf8dcb5b4bbaa28653b647d8c77bd4ed40183b48882e130c1f1ffb73de069fd7"
+checksum = "2c0df63cb2955042487fad3aefd2c6e3ae7389ac5dc1beb28921de0b69f779d4"
 
 [[package]]
 name = "array-init"
@@ -826,18 +826,18 @@ checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 
 [[package]]
 name = "serde"
-version = "1.0.117"
+version = "1.0.118"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b88fa983de7720629c9387e9f517353ed404164b1e482c970a90c1a4aaf7dc1a"
+checksum = "06c64263859d87aa2eb554587e2d23183398d617427327cf2b3d0ed8c69e4800"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.117"
+version = "1.0.118"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cbd1ae72adb44aab48f325a02444a5fc079349a8d804c1fc922aed3f7454c74e"
+checksum = "c84d3526699cd55261af4b941e4e725444df67aa4f9e6a3564f18030d12672df"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -969,23 +969,6 @@ dependencies = [
 [[package]]
 name = "turingdb"
 version = "2.0.0-beta.4"
-dependencies = [
- "anyhow",
- "async-fs",
- "async-lock 2.3.0",
- "bincode",
- "blocking 1.0.2",
- "custom_codes",
- "dashmap",
- "futures-lite 1.11.2",
- "serde",
- "sled 0.34.6",
- "tai64",
-]
-
-[[package]]
-name = "turingdb"
-version = "2.0.0-beta.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5ce6a618f661daf01b5e30f2b0535bb9bdf81dc3b3242da30b4ca066b50b3594"
 dependencies = [
@@ -997,6 +980,23 @@ dependencies = [
  "dashmap",
  "serde",
  "sled 0.32.1",
+ "tai64",
+]
+
+[[package]]
+name = "turingdb"
+version = "2.0.0"
+dependencies = [
+ "anyhow",
+ "async-fs",
+ "async-lock 2.3.0",
+ "bincode",
+ "blocking 1.0.2",
+ "custom_codes",
+ "dashmap",
+ "futures-lite 1.11.2",
+ "serde",
+ "sled 0.34.6",
  "tai64",
 ]
 
@@ -1039,7 +1039,7 @@ dependencies = [
  "simple-signal",
  "smol",
  "tai64",
- "turingdb 2.0.0-beta.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "turingdb 2.0.0-beta.4",
  "turingdb-helpers 2.0.0-beta.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "yansi",
 ]
