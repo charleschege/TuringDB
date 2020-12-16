@@ -14,6 +14,8 @@ use futures_lite::stream::StreamExt;
 use async_lock::Mutex;
 
 const REPO_NAME: &str = "TuringDB_Repo";
+// TODO use custom_codes errors to give actual errors
+// TODO Check whether you can respond with sled::Error
 
 /// This engine handles data all database queries and in-memory keys and sled file locks
 /// #### Structure
@@ -455,7 +457,7 @@ impl Tdb {
 /// ```
 /// #[derive(Debug, Clone)]
 /// struct Document {
-///     fd: Lock<sled::Db>,
+///     fd: Mutex<sled::Db>,
 ///     keys: Vec<String>
 /// }
 /// ```
