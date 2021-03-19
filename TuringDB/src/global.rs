@@ -1,5 +1,5 @@
+use camino::{Utf8Path, Utf8PathBuf};
 use std::io::ErrorKind;
-use std::path::{Path, PathBuf};
 
 const REPO_NAME: &str = "TuringDB-Repo";
 
@@ -85,19 +85,22 @@ pub enum OpsOutcome {
     RepoEmpty,
     DbCreated,
     DbDropped,
-    DbList(Vec<PathBuf>),
+    DbList(Vec<Utf8PathBuf>),
 }
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct RepoPath;
 
 impl RepoPath {
-    pub(crate) async fn access_dir() -> Result<PathBuf, TuringDbError> {
+    pub(crate) async fn access_dir() -> Result<Utf8PathBuf, TuringDbError> {
         match directories::UserDirs::new() {
             None => Err(TuringDbError::UserHomeDirMissing),
             Some(user_dir) => {
-                let home_dir = user_dir.home_dir();
-                let mut repo_path = PathBuf::new();
+                let home_dir = match user_dir.home_dir().to_str() {
+                    None => return Err(TuringDbError::PathReadIsNotUtf8Path),
+                    Some(dir) => dir,
+                };
+                let mut repo_path = Utf8PathBuf::new();
                 repo_path.push(home_dir);
                 repo_path.push(REPO_NAME);
 
