@@ -1,8 +1,7 @@
-use crate::{Document, OpsOutcome, RepoUtf8Path, TuringDB, TuringDbError};
+use crate::{Document, OpsOutcome, RepoPath, TuringDB, TuringDbError};
 use anyhow::Result;
 use async_fs::{self, DirBuilder, ReadDir};
 use async_lock::Mutex;
-use camino::{Utf8Path, Utf8PathBuf};
 use dashmap::DashMap;
 use futures_lite::stream::StreamExt;
 use serde::{Deserialize, Serialize};
@@ -28,18 +27,22 @@ use tai64::TAI64N;
 /// ```
 #[derive(Debug)]
 pub struct TuringEngine {
-    dbs: DashMap<Utf8PathBuf, TuringDB>, // Repo<DatabaseName, Databases>
-    repo_dir: Utf8PathBuf,
+    dbs: DashMap<PathBuf, TuringDB>, // Repo<DatabaseName, Databases>
+    repo_dir: PathBuf,
 }
 impl TuringEngine {
     /// Create a new in-memory repo
     pub async fn new() -> Result<TuringEngine, TuringDbError> {
-        let path = RepoUtf8Path::access_dir().await?;
+        let path = RepoPath::access_dir().await?;
 
         Ok(Self {
-            dbs: DashMap::<Utf8PathBuf, TuringDB>::new(),
+            dbs: DashMap::new(),
             repo_dir: path,
         })
+    }
+
+    pub async fn get_repo_dir(&self) -> &PathBuf {
+        &self.repo_dir
     }
 
     /// Create a repo
@@ -59,19 +62,17 @@ impl TuringEngine {
         let mut repo = async_fs::read_dir(&self.repo_dir).await?;
 
         while let Some(database_entry) = repo.try_next().await? {
-            let database_name_raw = database_entry.file_name();
-            let database_name = TuringEngine::to_utf8(database_name_raw)?;
+            let database_name = database_entry.file_name();
 
             if database_entry.file_type().await?.is_dir() {
                 let mut repo = async_fs::read_dir(&database_entry.path()).await?;
-                let mut current_db = TuringDB::default();
+                let mut current_db = TuringDB::new();
 
                 while let Some(document_entry) = repo.try_next().await? {
                     let mut field_keys = Vec::new();
 
                     if document_entry.file_type().await?.is_dir() {
-                        let document_name_raw = document_entry.file_name();
-                        let document_name = TuringEngine::to_utf8(document_name_raw)?;
+                        let document_name = document_entry.file_name();
 
                         let db = sled::open(document_entry.path())?;
 
@@ -82,7 +83,7 @@ impl TuringEngine {
                         let data = field_keys.iter().map(|inner| inner.to_vec()).collect();
 
                         current_db.list.insert(
-                            document_name,
+                            PathBuf::from(document_name),
                             Document {
                                 fd: Mutex::new(db),
                                 keys: data,
@@ -90,21 +91,62 @@ impl TuringEngine {
                         );
                     }
                 }
-                self.dbs.insert(database_name, current_db);
+                self.dbs.insert(PathBuf::from(database_name), current_db);
             }
         }
 
         Ok(OpsOutcome::RepoInitialized)
     }
 
-    fn to_utf8(value: OsString) -> Result<Utf8PathBuf, TuringDbError> {
-        match value.as_os_str().to_str() {
-            None => Err(TuringDbError::InvalidPathUnicodeName),
-            Some(path_str) => {
-                let mut path: Utf8PathBuf = Utf8PathBuf::new();
-                path.push(path_str);
-                Ok(path)
-            }
+    pub async fn db_create(&self, db_name: &str) -> Result<OpsOutcome, TuringDbError> {
+        let db_path = Path::new(db_name);
+        let db = TuringDB::new();
+
+        let dbop = db.db_create(&self.repo_dir, &db_path).await?;
+
+        self.dbs.insert(db_path.into(), TuringDB::new());
+        Ok(dbop)
+    }
+
+    pub async fn db_drop(&self, db_name: &str) -> Result<OpsOutcome, TuringDbError> {
+        let db_path = Path::new(db_name);
+        let db = TuringDB::new();
+
+        let dbop = db.db_drop(&self.repo_dir, &db_path).await?;
+
+        match self.dbs.remove(db_path) {
+            Some(_) => Ok(dbop),
+            None => Err(TuringDbError::NotFound),
+        }
+    }
+    /// List all the databases in the repo
+    pub fn db_list(&self) -> OpsOutcome {
+        let list = self
+            .dbs
+            .iter()
+            .map(|db| db.key().into())
+            .collect::<Vec<PathBuf>>();
+
+        if list.is_empty() {
+            OpsOutcome::RepoEmpty
+        } else {
+            OpsOutcome::DbList(list)
+        }
+    }
+    /// List all the databases in the repo
+    pub fn db_list_sorted(&self) -> OpsOutcome {
+        let mut list = self
+            .dbs
+            .iter()
+            .map(|db| db.key().into())
+            .collect::<Vec<PathBuf>>();
+
+        list.sort();
+
+        if list.is_empty() {
+            OpsOutcome::RepoEmpty
+        } else {
+            OpsOutcome::DbList(list)
         }
     }
 }

@@ -1,126 +1,75 @@
-use crate::Document;
-use camino::Utf8PathBuf;
-use std::collections::HashMap;
+use crate::{Document, OpsOutcome, TuringDbError};
+use async_fs::DirBuilder;
+use std::{
+    collections::hash_map::HashMap,
+    path::{Path, PathBuf},
+};
+
 /// #### Contains the list of documents and databases in-memory
 /// ```
 /// #[derive(Debug, Clone)]
-/// struct Tdb {
-///     list: HashMap<OsString, Document>,
+/// struct TuringDB {
+///     list: HashMap<Utf8PathBuf, Document>,
 /// }
 ///```
 #[derive(Debug)]
 pub(crate) struct TuringDB {
-    pub(crate) list: HashMap<Utf8PathBuf, Document>,
-    //Database<Document, Fileds>
-    //rights: Option<HashMap<UserIdentifier, (Role, AccessRights)>>,
-    //database_hash: Blake2hash,
-    //secrecy: TuringSecrecy,
-    //config: TuringConfig,
-    //authstate: Assymetric Crypto
-    //superuser: Only one
-    // admins: vec![], -> (User, PriveledgeAccess)
-    //users: vec![] -> """"
+    pub(crate) list: HashMap<PathBuf, Document>,
 }
 
-impl Default for TuringDB {
-    /// Create a new in-memory database
-    fn default() -> Self {
-        Self {
-            list: HashMap::default(),
-        }
-    }
-}
-/*
 impl TuringDB {
+    /// Create a new in-memory database
+    pub(crate) fn new() -> Self {
+        Self {
+            list: { HashMap::default() },
+        }
+    }
 
     /// Create a database
-    pub async fn db_create(&self, db_name: &Path) -> Result<DbOps> {
-        let mut path: PathBuf = REPO_NAME.into();
-        path.push(db_name);
-
+    pub(crate) async fn db_create(
+        mut self,
+        repo_dir: &Path,
+        db_name: &Path,
+    ) -> Result<OpsOutcome, TuringDbError> {
+        let path = Self::build_path(repo_dir, db_name);
         DirBuilder::new().recursive(false).create(path).await?;
+        let new_document = Document::new(&repo_dir.into()).await?;
+        self.list.insert(db_name.into(), new_document);
 
-        self.dbs.insert(db_name.into(), Tdb::new());
-
-        Ok(DbOps::DbCreated)
+        Ok(OpsOutcome::DbCreated)
     }
-    /// Drop the database
-    pub async fn db_drop(&self, db_name: &Path) -> Result<DbOps> {
-        if self.dbs.is_empty() {
-            return Ok(DbOps::RepoEmpty);
-        }
 
-        let mut path: PathBuf = REPO_NAME.into();
-        path.push(db_name);
+    /// Drop the database
+    pub async fn db_drop(
+        &self,
+        repo_dir: &Path,
+        db_name: &Path,
+    ) -> Result<OpsOutcome, TuringDbError> {
+        let path = Self::build_path(repo_dir, db_name);
+        dbg!(&path);
         async_fs::remove_dir_all(path).await?;
 
-        self.dbs.remove(&OsString::from(db_name));
-
-        Ok(DbOps::DbDropped)
+        Ok(OpsOutcome::DbDropped)
     }
-    /// List all the databases in the repo
-    pub async fn db_list(&self) -> DbOps {
-        if self.dbs.is_empty() {
-            return DbOps::RepoEmpty;
-        }
-
+    /// List all the documents in the repo
+    pub fn document_list(&self) -> OpsOutcome {
         let list = self
-            .dbs
+            .list
             .iter()
-            .map(|db| db.key().clone().to_string_lossy().to_string())
-            .collect::<Vec<String>>();
+            .map(|db| db.0.clone())
+            .collect::<Vec<PathBuf>>();
 
         if list.is_empty() {
-            DbOps::RepoEmpty
+            OpsOutcome::RepoEmpty
         } else {
-            DbOps::DbList(list)
+            OpsOutcome::DbList(list)
         }
     }
 
-
-
-    /************** DATABASES *******************/
-    /// Create a database
-    pub async fn db_create(&self, db_name: &Path) -> Result<DbOps> {
-        let mut path: PathBuf = REPO_NAME.into();
+    fn build_path(repo_dir: &Path, db_name: &Path) -> PathBuf {
+        let mut path: PathBuf = repo_dir.into();
         path.push(db_name);
 
-        DirBuilder::new().recursive(false).create(path).await?;
-
-        self.dbs.insert(db_name.into(), Tdb::new());
-
-        Ok(DbOps::DbCreated)
+        path
     }
-    /// Drop the database
-    pub async fn db_drop(&self, db_name: &Path) -> Result<DbOps> {
-        if self.dbs.is_empty() {
-            return Ok(DbOps::RepoEmpty);
-        }
-
-        let mut path: PathBuf = REPO_NAME.into();
-        path.push(db_name);
-        async_fs::remove_dir_all(path).await?;
-
-        self.dbs.remove(&OsString::from(db_name));
-
-        Ok(DbOps::DbDropped)
-    }
-    /// List all the databases in the repo
-    pub async fn db_list(&self) -> DbOps {
-        if self.dbs.is_empty() {
-            return DbOps::RepoEmpty;
-        }
-
-        let list = self
-            .dbs
-            .iter()
-            .map(|db| db.key().clone().to_string_lossy().to_string())
-            .collect::<Vec<String>>();
-
-        if list.is_empty() {
-            DbOps::RepoEmpty
-        } else {
-            DbOps::DbList(list)
-        }
-    }
-}*/
+}

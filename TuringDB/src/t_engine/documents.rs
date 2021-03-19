@@ -1,4 +1,6 @@
+use crate::TuringDbError;
 use async_lock::Mutex;
+use std::path::PathBuf;
 
 /// #### Contains an in-memory representation of a document, with an async lock on sled file descriptor and document keys
 /// ```
@@ -13,9 +15,24 @@ pub(crate) struct Document {
     pub(crate) fd: Mutex<sled::Db>,
     pub(crate) keys: Vec<Vec<u8>>,
 }
-/*
-impl Document {
 
+impl Document {
+    pub async fn new(repo_dir: &PathBuf) -> Result<Self, TuringDbError> {
+        let mut temp_path = PathBuf::new();
+        temp_path.push("temp");
+
+        let sled_document = sled::Config::default()
+            .path(temp_path)
+            .temporary(true)
+            .open()?;
+
+        Ok(Self {
+            fd: Mutex::new(sled_document),
+            keys: Vec::default(),
+        })
+    }
+}
+/*
     /// Create a document
     pub async fn doc_create(&self, db_name: &Path, doc_name: &Path) -> Result<DbOps> {
         if self.dbs.is_empty() {
