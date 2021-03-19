@@ -1,5 +1,5 @@
-use camino::{Utf8Path, Utf8PathBuf};
 use std::io::ErrorKind;
+use std::path::{Path, PathBuf};
 
 const REPO_NAME: &str = "TuringDB-Repo";
 
@@ -76,28 +76,29 @@ impl From<sled::Error> for TuringDbError {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum OpsOutcome {
     /// A temporary value for testing
     OpsOutcomePlaceholder,
     RepoCreated,
     RepoInitialized,
+    RepoEmpty,
+    DbCreated,
+    DbDropped,
+    DbList(Vec<PathBuf>),
 }
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct RepoUtf8Path;
+pub(crate) struct RepoPath;
 
-impl RepoUtf8Path {
-    pub(crate) async fn access_dir() -> Result<Utf8PathBuf, TuringDbError> {
+impl RepoPath {
+    pub(crate) async fn access_dir() -> Result<PathBuf, TuringDbError> {
         match directories::UserDirs::new() {
             None => Err(TuringDbError::UserHomeDirMissing),
             Some(user_dir) => {
-                let safe_user_dir = match Utf8Path::from_path(user_dir.home_dir()) {
-                    None => return Err(TuringDbError::UserHomeDirIsInvalidUtf8Path),
-                    Some(dir) => dir,
-                };
-                let mut repo_path = Utf8PathBuf::new();
-                repo_path.push(safe_user_dir);
+                let home_dir = user_dir.home_dir();
+                let mut repo_path = PathBuf::new();
+                repo_path.push(home_dir);
                 repo_path.push(REPO_NAME);
 
                 Ok(repo_path)
