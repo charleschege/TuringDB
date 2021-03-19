@@ -1,20 +1,18 @@
 use crate::{Document, OpsOutcome, TuringDbError};
 use async_fs::DirBuilder;
-use std::{
-    collections::hash_map::HashMap,
-    path::{Path, PathBuf},
-};
+use camino::{Utf8Path, Utf8PathBuf};
+use std::collections::hash_map::HashMap;
 
 /// #### Contains the list of documents and databases in-memory
 /// ```
 /// #[derive(Debug, Clone)]
 /// struct TuringDB {
-///     list: HashMap<Utf8PathBuf, Document>,
+///     list: HashMap<Utf8Utf8PathBuf, Document>,
 /// }
 ///```
 #[derive(Debug)]
 pub(crate) struct TuringDB {
-    pub(crate) list: HashMap<PathBuf, Document>,
+    pub(crate) list: HashMap<Utf8PathBuf, Document>,
 }
 
 impl TuringDB {
@@ -28,8 +26,8 @@ impl TuringDB {
     /// Create a database
     pub(crate) async fn db_create(
         mut self,
-        repo_dir: &Path,
-        db_name: &Path,
+        repo_dir: &Utf8Path,
+        db_name: &Utf8Path,
     ) -> Result<OpsOutcome, TuringDbError> {
         let path = Self::build_path(repo_dir, db_name);
         DirBuilder::new().recursive(false).create(path).await?;
@@ -42,11 +40,10 @@ impl TuringDB {
     /// Drop the database
     pub async fn db_drop(
         &self,
-        repo_dir: &Path,
-        db_name: &Path,
+        repo_dir: &Utf8Path,
+        db_name: &Utf8Path,
     ) -> Result<OpsOutcome, TuringDbError> {
         let path = Self::build_path(repo_dir, db_name);
-        dbg!(&path);
         async_fs::remove_dir_all(path).await?;
 
         Ok(OpsOutcome::DbDropped)
@@ -57,7 +54,7 @@ impl TuringDB {
             .list
             .iter()
             .map(|db| db.0.clone())
-            .collect::<Vec<PathBuf>>();
+            .collect::<Vec<Utf8PathBuf>>();
 
         if list.is_empty() {
             OpsOutcome::RepoEmpty
@@ -66,8 +63,8 @@ impl TuringDB {
         }
     }
 
-    fn build_path(repo_dir: &Path, db_name: &Path) -> PathBuf {
-        let mut path: PathBuf = repo_dir.into();
+    fn build_path(repo_dir: &Utf8Path, db_name: &Utf8Path) -> Utf8PathBuf {
+        let mut path: Utf8PathBuf = repo_dir.into();
         path.push(db_name);
 
         path

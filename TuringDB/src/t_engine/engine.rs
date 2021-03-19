@@ -2,15 +2,11 @@ use crate::{Document, OpsOutcome, RepoPath, TuringDB, TuringDbError};
 use anyhow::Result;
 use async_fs::{self, DirBuilder, ReadDir};
 use async_lock::Mutex;
+use camino::{Utf8Path, Utf8PathBuf};
 use dashmap::DashMap;
 use futures_lite::stream::StreamExt;
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashMap,
-    ffi::OsString,
-    io::ErrorKind,
-    path::{Path, PathBuf},
-};
+use std::{collections::HashMap, ffi::OsString, io::ErrorKind};
 use tai64::TAI64N;
 
 // TODO use custom_codes errors to give actual errors
@@ -27,8 +23,8 @@ use tai64::TAI64N;
 /// ```
 #[derive(Debug)]
 pub struct TuringEngine {
-    dbs: DashMap<PathBuf, TuringDB>, // Repo<DatabaseName, Databases>
-    repo_dir: PathBuf,
+    dbs: DashMap<Utf8PathBuf, TuringDB>, // Repo<DatabaseName, Databases>
+    repo_dir: Utf8PathBuf,
 }
 impl TuringEngine {
     /// Create a new in-memory repo
@@ -41,7 +37,7 @@ impl TuringEngine {
         })
     }
 
-    pub async fn get_repo_dir(&self) -> &PathBuf {
+    pub async fn get_repo_dir(&self) -> &Utf8PathBuf {
         &self.repo_dir
     }
 
@@ -62,7 +58,7 @@ impl TuringEngine {
         let mut repo = async_fs::read_dir(&self.repo_dir).await?;
 
         while let Some(database_entry) = repo.try_next().await? {
-            let database_name = database_entry.file_name();
+            let database_name_raw = database_entry.file_name();
 
             if database_entry.file_type().await?.is_dir() {
                 let mut repo = async_fs::read_dir(&database_entry.path()).await?;
@@ -72,7 +68,9 @@ impl TuringEngine {
                     let mut field_keys = Vec::new();
 
                     if document_entry.file_type().await?.is_dir() {
-                        let document_name = document_entry.file_name();
+                        let document_name_raw = document_entry.file_name();
+                        let document_name: Utf8PathBuf =
+                            TuringEngine::to_utf8_path(document_name_raw)?;
 
                         let db = sled::open(document_entry.path())?;
 
@@ -83,7 +81,7 @@ impl TuringEngine {
                         let data = field_keys.iter().map(|inner| inner.to_vec()).collect();
 
                         current_db.list.insert(
-                            PathBuf::from(document_name),
+                            document_name.into(),
                             Document {
                                 fd: Mutex::new(db),
                                 keys: data,
@@ -91,7 +89,10 @@ impl TuringEngine {
                         );
                     }
                 }
-                self.dbs.insert(PathBuf::from(database_name), current_db);
+
+                let database_name: Utf8PathBuf = TuringEngine::to_utf8_path(database_name_raw)?;
+                self.dbs
+                    .insert(Utf8PathBuf::from(database_name), current_db);
             }
         }
 
@@ -99,7 +100,7 @@ impl TuringEngine {
     }
 
     pub async fn db_create(&self, db_name: &str) -> Result<OpsOutcome, TuringDbError> {
-        let db_path = Path::new(db_name);
+        let db_path = Utf8Path::new(db_name).to_path_buf();
         let db = TuringDB::new();
 
         let dbop = db.db_create(&self.repo_dir, &db_path).await?;
@@ -109,12 +110,12 @@ impl TuringEngine {
     }
 
     pub async fn db_drop(&self, db_name: &str) -> Result<OpsOutcome, TuringDbError> {
-        let db_path = Path::new(db_name);
+        let db_path = Utf8Path::new(db_name).to_path_buf();
         let db = TuringDB::new();
 
         let dbop = db.db_drop(&self.repo_dir, &db_path).await?;
 
-        match self.dbs.remove(db_path) {
+        match self.dbs.remove(&db_path) {
             Some(_) => Ok(dbop),
             None => Err(TuringDbError::NotFound),
         }
@@ -125,7 +126,7 @@ impl TuringEngine {
             .dbs
             .iter()
             .map(|db| db.key().into())
-            .collect::<Vec<PathBuf>>();
+            .collect::<Vec<Utf8PathBuf>>();
 
         if list.is_empty() {
             OpsOutcome::RepoEmpty
@@ -139,7 +140,7 @@ impl TuringEngine {
             .dbs
             .iter()
             .map(|db| db.key().into())
-            .collect::<Vec<PathBuf>>();
+            .collect::<Vec<Utf8PathBuf>>();
 
         list.sort();
 
@@ -147,6 +148,13 @@ impl TuringEngine {
             OpsOutcome::RepoEmpty
         } else {
             OpsOutcome::DbList(list)
+        }
+    }
+
+    fn to_utf8_path(value: OsString) -> Result<Utf8PathBuf, TuringDbError> {
+        match std::path::PathBuf::from(value).to_str() {
+            None => Err(TuringDbError::PathReadIsNotUtf8Path),
+            Some(path) => Ok(Utf8Path::new(path).to_path_buf()),
         }
     }
 }
