@@ -311,7 +311,7 @@ We follow the [Rust Code of Conduct](https://www.rust-lang.org/policies/code-of-
 
 #### License
 
-All code contributions to this project must be licensed under Apache license
+All code contributions to this project must be licensed under Business Source License. See the license file
 
 #### Acknowledgement
 
