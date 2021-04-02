@@ -1,13 +1,18 @@
 [tasks.default]
-dependencies = ["build_lib"]
+dependencies = ["build"]
 
-[tasks.build_lib]
+[tasks.build]
 command = "cargo"
 args = ["build"]
 watch = {}
 
 
-[tasks.check_lib]
+[tasks.check]
 command = "cargo"
 args = ["check"]
-dependencies = ["build"]
+dependencies = ["fmt"]
+watch = {}
+
+[tasks.fmt]
+command = "cargo"
+args = ["fmt"]
