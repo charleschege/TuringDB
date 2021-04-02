@@ -150,6 +150,22 @@ impl TuringEngine {
             OpsOutcome::DbList(list)
         }
     }
+    /// List all the documents in the database in any order
+    pub fn document_list(&self, db_name: &str) -> OpsOutcome {
+        let db_name = Utf8Path::new(db_name);
+        match self.dbs.get(&db_name.to_path_buf()) {
+            None => OpsOutcome::DbNotFound,
+            Some(db) => TuringDB::document_list(&db),
+        }
+    }
+    /// List all documents in a database sorted alphabetically
+    pub fn document_list_sorted(&self, db_name: &str) -> OpsOutcome {
+        let db_name = Utf8Path::new(db_name);
+        match self.dbs.get(&db_name.to_path_buf()) {
+            None => OpsOutcome::DbNotFound,
+            Some(db) => TuringDB::document_list_sorted(&db),
+        }
+    }
 
     fn to_utf8_path(value: OsString) -> Result<Utf8PathBuf, TuringDbError> {
         match std::path::PathBuf::from(value).to_str() {

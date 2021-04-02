@@ -86,6 +86,9 @@ pub enum OpsOutcome {
     DbCreated,
     DbDropped,
     DbList(Vec<Utf8PathBuf>),
+    DbNotFound,
+    DbEmpty,
+    DocumentList(Vec<Utf8PathBuf>),
 }
 
 #[derive(Debug, Clone, Copy)]

@@ -48,6 +48,8 @@ fn main() -> Result<(), TuringDbError> {
         dbg!(&engine.db_drop("db6").await);
         dbg!(&engine.db_list());
         dbg!(&engine.db_list_sorted());
+        dbg!(&engine.document_list("db0"));
+        dbg!(&engine.document_list_sorted("db0"));
 
         Ok(())
     }))

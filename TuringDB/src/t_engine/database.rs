@@ -49,17 +49,34 @@ impl TuringDB {
         Ok(OpsOutcome::DbDropped)
     }
     /// List all the documents in the repo
-    pub fn document_list(&self) -> OpsOutcome {
-        let list = self
-            .list
-            .iter()
-            .map(|db| db.0.clone())
-            .collect::<Vec<Utf8PathBuf>>();
+    pub fn document_list(db: &Self) -> OpsOutcome {
+        let mut list: Vec<Utf8PathBuf> = Vec::new();
+
+        db.list.iter().next().map(|document_name| {
+            list.push(document_name.0.into());
+        });
 
         if list.is_empty() {
-            OpsOutcome::RepoEmpty
+            OpsOutcome::DbEmpty
         } else {
-            OpsOutcome::DbList(list)
+            OpsOutcome::DocumentList(list)
+        }
+    }
+    /// List all documents in a database sorted alphabetically
+    //TODO Check if uppercase and lowercase and other characters appear sorted
+    pub fn document_list_sorted(db: &Self) -> OpsOutcome {
+        let mut list: Vec<Utf8PathBuf> = Vec::new();
+
+        db.list.iter().next().map(|document_name| {
+            list.push(document_name.0.into());
+        });
+
+        list.sort();
+
+        if list.is_empty() {
+            OpsOutcome::DbEmpty
+        } else {
+            OpsOutcome::DocumentList(list)
         }
     }
 
