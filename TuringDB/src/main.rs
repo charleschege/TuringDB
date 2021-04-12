@@ -43,13 +43,13 @@ fn main() -> Result<(), TuringDbError> {
         dbg!(engine.repo_init().await)?;
         dbg!(engine.is_empty());
         dbg!(&engine);
-        dbg!(&engine.db_create("db6").await);
+        dbg!(&engine.db("db6")?.db_create().await);
         dbg!(&engine);
-        dbg!(&engine.db_drop("db6").await);
+        dbg!(&engine.db("db6")?.db_drop().await);
         dbg!(&engine.db_list());
         dbg!(&engine.db_list_sorted());
-        dbg!(&engine.document_list("db0"));
-        dbg!(&engine.document_list_sorted("db0"));
+        dbg!(&engine.db("db0")?.document_list());
+        dbg!(&engine.db("db0")?.document_list_sorted());
 
         Ok(())
     }))

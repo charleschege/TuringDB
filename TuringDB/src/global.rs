@@ -3,11 +3,14 @@ use std::io::ErrorKind;
 
 const REPO_NAME: &str = "TuringDB-Repo";
 
+pub type TuringResult<T> = Result<T, TuringDbError>;
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TuringDbError {
     UserHomeDirMissing,
     UserHomeDirIsInvalidUtf8Path,
     PathReadIsNotUtf8Path,
+    DbNameMissing,
     InvalidPathUnicodeName,
     NotFound,
     PermissionDenied,

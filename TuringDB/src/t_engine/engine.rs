@@ -1,4 +1,4 @@
-use crate::{Document, OpsOutcome, RepoPath, TuringDB, TuringDbError};
+use crate::{Document, OpsOutcome, RepoPath, TuringDB, TuringDbError, TuringResult};
 use anyhow::Result;
 use async_fs::{self, DirBuilder, ReadDir};
 use async_lock::Mutex;
@@ -25,16 +25,39 @@ use tai64::TAI64N;
 pub struct TuringEngine {
     dbs: DashMap<Utf8PathBuf, TuringDB>, // Repo<DatabaseName, Databases>
     repo_dir: Utf8PathBuf,
+    db_name: Option<Utf8PathBuf>,
 }
 impl TuringEngine {
     /// Create a new in-memory repo
-    pub async fn new() -> Result<TuringEngine, TuringDbError> {
+    pub async fn new() -> TuringResult<TuringEngine> {
         let path = RepoPath::access_dir().await?;
 
         Ok(Self {
             dbs: DashMap::new(),
             repo_dir: path,
+            db_name: Option::default(),
         })
+    }
+
+    pub fn db(&mut self, db_name: &str) -> TuringResult<&mut Self> {
+        if db_name.is_empty() {
+            return Err(TuringDbError::DbNameMissing);
+        }
+
+        self.db_name = Some(Utf8Path::new(db_name).to_path_buf());
+
+        Ok(self)
+    }
+
+    fn get_db_name(&self) -> TuringResult<Utf8PathBuf> {
+        match &self.db_name {
+            None => Err(TuringDbError::DbNameMissing),
+            Some(path) => Ok(path.to_owned()),
+        }
+    }
+
+    fn reset_db_name(&mut self) {
+        self.db_name = None;
     }
 
     pub async fn get_repo_dir(&self) -> &Utf8PathBuf {
@@ -42,7 +65,7 @@ impl TuringEngine {
     }
 
     /// Create a repo
-    pub async fn repo_create(&self) -> Result<OpsOutcome, TuringDbError> {
+    pub async fn repo_create(&self) -> TuringResult<OpsOutcome> {
         DirBuilder::new()
             .recursive(false)
             .create(&self.repo_dir)
@@ -54,7 +77,7 @@ impl TuringEngine {
     pub fn is_empty(&self) -> bool {
         self.dbs.is_empty()
     }
-    pub async fn repo_init(&mut self) -> Result<OpsOutcome, TuringDbError> {
+    pub async fn repo_init(&mut self) -> TuringResult<OpsOutcome> {
         let mut repo = async_fs::read_dir(&self.repo_dir).await?;
 
         while let Some(database_entry) = repo.try_next().await? {
@@ -99,21 +122,24 @@ impl TuringEngine {
         Ok(OpsOutcome::RepoInitialized)
     }
 
-    pub async fn db_create(&self, db_name: &str) -> Result<OpsOutcome, TuringDbError> {
-        let db_path = Utf8Path::new(db_name).to_path_buf();
+    pub async fn db_create(&mut self) -> TuringResult<OpsOutcome> {
+        let db_path = self.get_db_name()?;
         let db = TuringDB::new();
 
         let dbop = db.db_create(&self.repo_dir, &db_path).await?;
 
         self.dbs.insert(db_path.into(), TuringDB::new());
+        self.reset_db_name();
+
         Ok(dbop)
     }
 
-    pub async fn db_drop(&self, db_name: &str) -> Result<OpsOutcome, TuringDbError> {
-        let db_path = Utf8Path::new(db_name).to_path_buf();
+    pub async fn db_drop(&mut self) -> TuringResult<OpsOutcome> {
+        let db_path = self.get_db_name()?;
         let db = TuringDB::new();
 
         let dbop = db.db_drop(&self.repo_dir, &db_path).await?;
+        self.reset_db_name();
 
         match self.dbs.remove(&db_path) {
             Some(_) => Ok(dbop),
@@ -151,23 +177,27 @@ impl TuringEngine {
         }
     }
     /// List all the documents in the database in any order
-    pub fn document_list(&self, db_name: &str) -> OpsOutcome {
-        let db_name = Utf8Path::new(db_name);
+    pub fn document_list(&mut self) -> TuringResult<OpsOutcome> {
+        let db_name = self.get_db_name()?;
+        self.reset_db_name();
+
         match self.dbs.get(&db_name.to_path_buf()) {
-            None => OpsOutcome::DbNotFound,
-            Some(db) => TuringDB::document_list(&db),
+            None => Ok(OpsOutcome::DbNotFound),
+            Some(db) => Ok(TuringDB::document_list(&db)),
         }
     }
     /// List all documents in a database sorted alphabetically
-    pub fn document_list_sorted(&self, db_name: &str) -> OpsOutcome {
-        let db_name = Utf8Path::new(db_name);
+    pub fn document_list_sorted(&mut self) -> TuringResult<OpsOutcome> {
+        let db_name = self.get_db_name()?;
+        self.reset_db_name();
+
         match self.dbs.get(&db_name.to_path_buf()) {
-            None => OpsOutcome::DbNotFound,
-            Some(db) => TuringDB::document_list_sorted(&db),
+            None => Ok(OpsOutcome::DbNotFound),
+            Some(db) => Ok(TuringDB::document_list_sorted(&db)),
         }
     }
 
-    fn to_utf8_path(value: OsString) -> Result<Utf8PathBuf, TuringDbError> {
+    fn to_utf8_path(value: OsString) -> TuringResult<Utf8PathBuf> {
         match std::path::PathBuf::from(value).to_str() {
             None => Err(TuringDbError::PathReadIsNotUtf8Path),
             Some(path) => Ok(Utf8Path::new(path).to_path_buf()),
