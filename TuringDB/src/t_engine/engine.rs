@@ -1,4 +1,7 @@
-use crate::{Document, OpsOutcome, RepoPath, TuringDB, TuringDbError, TuringResult};
+use crate::{
+    Document, OpsOutcome, RepoPath, TuringDB, TuringDBDocumentOps, TuringDBOps, TuringDbError,
+    TuringResult,
+};
 use anyhow::Result;
 use async_fs::{self, DirBuilder, ReadDir};
 use async_lock::Mutex;
@@ -25,7 +28,6 @@ use tai64::TAI64N;
 pub struct TuringEngine {
     dbs: DashMap<Utf8PathBuf, TuringDB>, // Repo<DatabaseName, Databases>
     repo_dir: Utf8PathBuf,
-    db_name: Option<Utf8PathBuf>,
 }
 impl TuringEngine {
     /// Create a new in-memory repo
@@ -35,29 +37,7 @@ impl TuringEngine {
         Ok(Self {
             dbs: DashMap::new(),
             repo_dir: path,
-            db_name: Option::default(),
         })
-    }
-
-    pub fn db(&mut self, db_name: &str) -> TuringResult<&mut Self> {
-        if db_name.is_empty() {
-            return Err(TuringDbError::DbNameMissing);
-        }
-
-        self.db_name = Some(Utf8Path::new(db_name).to_path_buf());
-
-        Ok(self)
-    }
-
-    fn get_db_name(&self) -> TuringResult<Utf8PathBuf> {
-        match &self.db_name {
-            None => Err(TuringDbError::DbNameMissing),
-            Some(path) => Ok(path.to_owned()),
-        }
-    }
-
-    fn reset_db_name(&mut self) {
-        self.db_name = None;
     }
 
     pub async fn get_repo_dir(&self) -> &Utf8PathBuf {
@@ -88,28 +68,17 @@ impl TuringEngine {
                 let mut current_db = TuringDB::new();
 
                 while let Some(document_entry) = repo.try_next().await? {
-                    let mut field_keys = Vec::new();
-
                     if document_entry.file_type().await?.is_dir() {
                         let document_name_raw = document_entry.file_name();
                         let document_name: Utf8PathBuf =
                             TuringEngine::to_utf8_path(document_name_raw)?;
 
-                        let db = sled::open(document_entry.path())?;
+                        let db = sled::Config::default()
+                            .path(document_entry.path())
+                            .create_new(false)
+                            .open()?;
 
-                        for field_key in db.into_iter().keys() {
-                            field_keys.push(field_key?);
-                        }
-
-                        let data = field_keys.iter().map(|inner| inner.to_vec()).collect();
-
-                        current_db.list.insert(
-                            document_name.into(),
-                            Document {
-                                fd: Mutex::new(db),
-                                keys: data,
-                            },
-                        );
+                        current_db.list.insert(document_name.into(), db);
                     }
                 }
 
@@ -122,24 +91,22 @@ impl TuringEngine {
         Ok(OpsOutcome::RepoInitialized)
     }
 
-    pub async fn db_create(&mut self) -> TuringResult<OpsOutcome> {
-        let db_path = self.get_db_name()?;
+    pub async fn db_create(&mut self, ops: TuringDBOps) -> TuringResult<OpsOutcome> {
+        let db_path = ops.get_db_name();
         let db = TuringDB::new();
 
         let dbop = db.db_create(&self.repo_dir, &db_path).await?;
 
         self.dbs.insert(db_path.into(), TuringDB::new());
-        self.reset_db_name();
 
         Ok(dbop)
     }
 
-    pub async fn db_drop(&mut self) -> TuringResult<OpsOutcome> {
-        let db_path = self.get_db_name()?;
+    pub async fn db_drop(&mut self, ops: TuringDBOps) -> TuringResult<OpsOutcome> {
+        let db_path = ops.get_db_name();
         let db = TuringDB::new();
 
         let dbop = db.db_drop(&self.repo_dir, &db_path).await?;
-        self.reset_db_name();
 
         match self.dbs.remove(&db_path) {
             Some(_) => Ok(dbop),
@@ -177,25 +144,48 @@ impl TuringEngine {
         }
     }
     /// List all the documents in the database in any order
-    pub fn document_list(&mut self) -> TuringResult<OpsOutcome> {
-        let db_name = self.get_db_name()?;
-        self.reset_db_name();
+    pub fn document_list(&mut self, ops: &TuringDBOps) -> TuringResult<OpsOutcome> {
+        let db_name = ops.get_db_name();
 
         match self.dbs.get(&db_name.to_path_buf()) {
-            None => Ok(OpsOutcome::DbNotFound),
+            None => Err(TuringDbError::DbNotFound),
             Some(db) => Ok(TuringDB::document_list(&db)),
         }
     }
     /// List all documents in a database sorted alphabetically
-    pub fn document_list_sorted(&mut self) -> TuringResult<OpsOutcome> {
-        let db_name = self.get_db_name()?;
-        self.reset_db_name();
+    pub fn document_list_sorted(&mut self, ops: &TuringDBOps) -> TuringResult<OpsOutcome> {
+        let db_name = ops.get_db_name();
 
         match self.dbs.get(&db_name.to_path_buf()) {
-            None => Ok(OpsOutcome::DbNotFound),
+            None => Err(TuringDbError::DbNotFound),
             Some(db) => Ok(TuringDB::document_list_sorted(&db)),
         }
     }
+    /// Create a document
+    pub async fn document_create(&mut self, ops: &TuringDBDocumentOps) -> TuringResult<OpsOutcome> {
+        let db_name = ops.get_db_name();
+
+        match self.dbs.get_mut(&db_name.to_path_buf()) {
+            None => Err(TuringDbError::DbNotFound),
+            Some(mut db) => {
+                db.document_create(&self.repo_dir, &ops.get_db_name(), &ops.get_document_name())
+                    .await
+            }
+        }
+    }
+    /// Create a document
+    pub async fn document_drop(&mut self, ops: &TuringDBDocumentOps) -> TuringResult<OpsOutcome> {
+        let db_name = ops.get_db_name();
+
+        match self.dbs.get_mut(&db_name.to_path_buf()) {
+            None => Err(TuringDbError::DbNotFound),
+            Some(mut db) => {
+                db.document_drop(&self.repo_dir, &ops.get_db_name(), &ops.get_document_name())
+                    .await
+            }
+        }
+    }
+    /// TODO Document and database stats
 
     fn to_utf8_path(value: OsString) -> TuringResult<Utf8PathBuf> {
         match std::path::PathBuf::from(value).to_str() {

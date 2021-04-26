@@ -42,14 +42,26 @@ fn main() -> Result<(), TuringDbError> {
         dbg!(engine.is_empty());
         dbg!(engine.repo_init().await)?;
         dbg!(engine.is_empty());
-        dbg!(&engine);
-        dbg!(&engine.db("db6")?.db_create().await);
+        //dbg!(&engine);
+        /*dbg!(&engine.db("db6")?.db_create().await);
         dbg!(&engine);
         dbg!(&engine.db("db6")?.db_drop().await);
         dbg!(&engine.db_list());
         dbg!(&engine.db_list_sorted());
         dbg!(&engine.db("db0")?.document_list());
-        dbg!(&engine.db("db0")?.document_list_sorted());
+        dbg!(&engine.db("db0")?.document_list_sorted());*/
+        let db = TuringDBOps::default().set_db_name("db0");
+        dbg!(&engine.document_list(&db));
+        let new_doc = TuringDBDocumentOps::default()
+            .set_db_name("db0")
+            .set_document_name("doc6");
+        dbg!(&engine.document_create(&new_doc).await);
+        dbg!(&engine.document_list(&db));
+        dbg!(&engine.document_list_sorted(&db));
+
+        dbg!(&engine.document_drop(&new_doc).await);
+        dbg!(&engine.document_list(&db));
+        dbg!(&engine.document_list_sorted(&db));
 
         Ok(())
     }))
