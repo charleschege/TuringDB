@@ -1,6 +1,6 @@
 use crate::{
-    Document, OpsOutcome, RepoPath, TuringDB, TuringDBDocumentOps, TuringDBOps, TuringDbError,
-    TuringResult,
+    Document, OpsOutcome, RepoPath, TuringDB, TuringDBDocumentOps, TuringDBFieldOps, TuringDBOps,
+    TuringDbError, TuringResult,
 };
 use anyhow::Result;
 use async_fs::{self, DirBuilder, ReadDir};
@@ -184,7 +184,25 @@ impl TuringEngine {
                     .await
             }
         }
-    }
+    } /*
+      ///Insert a field and its value
+      pub async fn field_set(&self, ops: &TuringDBFieldOps) -> TuringResult<OpsOutcome> {
+          let db_name = ops.get_db_name();
+
+          match self.dbs.get_mut(&db_name.to_path_buf()) {
+              None => Err(TuringDbError::DbNotFound),
+              Some(mut db) => {
+                  db.field_set(
+                      &self.repo_dir,
+                      &ops.get_db_name(),
+                      &ops.get_document_name(),
+                      &ops.get_key(),
+                      &ops.get_value(),
+                  )
+                  .await
+              }
+          }
+      }*/
     /// TODO Document and database stats
 
     fn to_utf8_path(value: OsString) -> TuringResult<Utf8PathBuf> {

@@ -2,6 +2,7 @@ use crate::{Document, OpsOutcome, TuringDbError, TuringResult};
 use async_fs::DirBuilder;
 use async_lock::Mutex;
 use camino::{Utf8Path, Utf8PathBuf};
+use sled::IVec;
 use std::collections::hash_map::HashMap;
 
 /// #### Contains the list of documents and databases in-memory
@@ -44,7 +45,7 @@ impl TuringDB {
     }
 
     /// Drop the database
-    pub async fn db_drop(
+    pub(crate) async fn db_drop(
         &self,
         repo_dir: &Utf8Path,
         db_name: &Utf8Path,
@@ -86,7 +87,7 @@ impl TuringDB {
         }
     }
     /// Create a new document
-    pub async fn document_create(
+    pub(crate) async fn document_create(
         &mut self,
         repo_dir: &Utf8Path,
         db_name: &Utf8Path,
@@ -109,7 +110,7 @@ impl TuringDB {
         }
     }
     /// Drop a document
-    pub async fn document_drop(
+    pub(crate) async fn document_drop(
         &mut self,
         repo_dir: &Utf8Path,
         db_name: &Utf8Path,
@@ -122,6 +123,28 @@ impl TuringDB {
         self.list.remove(document_name);
 
         Ok(OpsOutcome::DocumentDropped)
+    }
+    /// Field Insert
+    pub(crate) async fn field_set(
+        &mut self,
+        repo_dir: &Utf8Path,
+        db_name: &Utf8Path,
+        document_name: &Utf8Path,
+        key: IVec,
+        value: IVec,
+    ) -> TuringResult<OpsOutcome> {
+        match self.list.get(&document_name.to_path_buf()) {
+            None => Err(TuringDbError::DocumentNotFound),
+            Some(sled_db) => {
+                if !sled_db.contains_key(&key)? {
+                    sled_db.insert(key, value)?;
+
+                    Ok(OpsOutcome::FieldInserted)
+                } else {
+                    Err(TuringDbError::KeyAlreadyExists)
+                }
+            }
+        }
     }
 
     fn build_path(repo_dir: &Utf8Path, db_name: &Utf8Path) -> Utf8PathBuf {

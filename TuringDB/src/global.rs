@@ -1,5 +1,6 @@
 use async_lock::Mutex;
 use camino::{Utf8Path, Utf8PathBuf};
+use sled::IVec;
 use std::io::ErrorKind;
 
 use crate::TuringDB;
@@ -16,6 +17,8 @@ pub enum TuringDbError {
     PathReadIsNotUtf8Path,
     DbNameMissing,
     DbNotFound,
+    DocumentNotFound,
+    KeyAlreadyExists,
     InvalidPathUnicodeName,
     NotFound,
     PermissionDenied,
@@ -98,6 +101,7 @@ pub enum OpsOutcome {
     DocumentList(Vec<Utf8PathBuf>),
     DocumentCreated,
     DocumentDropped,
+    FieldInserted,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -125,7 +129,8 @@ impl RepoPath {
 pub type DBName = Utf8PathBuf;
 pub type RepoName = Utf8PathBuf;
 pub type DocumentName = Utf8PathBuf;
-pub type FieldName = Utf8PathBuf;
+pub type FieldKey = DataType;
+pub type FieldValue = DataType;
 
 pub struct TuringDBOps(DBName);
 
@@ -185,5 +190,127 @@ impl TuringDBDocumentOps {
 pub struct TuringDBFieldOps {
     db_name: DBName,
     document_name: DocumentName,
+    field_name: FieldKey,
+    field_value: FieldValue,
+}
+
+impl TuringDBFieldOps {
+    pub fn db(mut self, db_name: &str) -> Self {
+        self.db_name = Utf8Path::new(&db_name).to_path_buf();
+
+        self
+    }
+
+    pub fn document(mut self, document_name: &str) -> Self {
+        self.document_name = Utf8Path::new(&document_name).to_path_buf();
+
+        self
+    }
+
+    pub fn get_db_name(&self) -> Utf8PathBuf {
+        self.db_name.to_owned()
+    }
+
+    pub fn get_document_name(&self) -> Utf8PathBuf {
+        self.document_name.to_owned()
+    }
+
+    pub fn get_key(&self) -> FieldKey {
+        self.field_name
+    }
+
+    pub fn get_value(&self) -> FieldValue {
+        self.field_value
+    }
+}
+
+// TODO. Add these as features support but Borsh type is default
+/*
+pub struct TuringDBFieldOps {
+    db_name: DBName,
+    document_name: DocumentName,
     field_name: FieldName,
+    field_value: TuringDBValue,
+}
+
+pub struct TuringDBValue {
+    data: String,
+    ser_der: SerDerType,
+}
+
+enum SerDerType {
+    Borsh,
+    Bincode,
+    JSON,
+    CBOR,
+}
+*/
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum DataType {
+    Boolean = 0x00,
+    U8 = 0x01,
+    I8 = 0x02,
+    U16 = 0x03,
+    I16 = 0x04,
+    U32 = 0x05,
+    I32 = 0x06,
+    U64 = 0x07,
+    I64 = 0x08,
+    U128 = 0x09,
+    I128 = 0x10,
+    F32 = 0x11,
+    F64 = 0x12,
+    STRING = 0x13,
+    ARRAY = 0x14,
+    UTC = 0x15,
+    TAI64 = 0x16,
+    TAI64N = 0x17,
+    TAI64NA = 0x18,
+    RANGE = 0x19,
+    TIMESPEC = 0x20,
+    OPTION = 0x21,
+    BLAKE3 = 0x22,
+    BLAKE3HMAC = 0x23,
+    SHA3 = 0x24,
+    SHA3HMAC = 0x25,
+    BORSCH = 0x26,
+    GEO = 0x27,
+    BINARY = 0x28,
+    CHACHA8 = 0x29,
+    CHACHA12 = 0x30,
+    CHACHA20 = 0x31,
+    CHACHAPOLY1305 = 0x32,
+    XCHACHABLAKE3SIV = 0x33,
+    AES256GCM = 0x34,
+}
+
+const TRUE: u8 = 1;
+const FALSE: u8 = 1;
+
+pub struct TDBCell {
+    data_type: DataType,
+    data: Vec<u8>,
+}
+
+impl TDBCell {
+    pub fn data_type(&mut self, value: DataType) -> &mut Self {
+        self.data_type = value;
+
+        self
+    }
+
+    pub fn data(&mut self, value: &[u8]) -> &mut Self {
+        self.data = value.to_owned();
+
+        self
+    }
+
+    pub fn to_ivec(&self) -> IVec {
+        let mut data = Vec::default();
+        data.push(self.data_type as u8);
+        data.extend_from_slice(&self.data);
+
+        IVec::from(data)
+    }
 }
