@@ -28,6 +28,8 @@ mod t_engine;
 pub use t_engine::*;
 mod global;
 pub use global::*;
+mod crypto;
+pub use crypto::*;
 
 fn main() -> Result<(), TuringDbError> {
     use async_executor::Executor;
